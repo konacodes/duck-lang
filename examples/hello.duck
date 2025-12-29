@@ -1,0 +1,22 @@
+-- Hello World in Duck
+-- Every block needs a quack!
+
+quack
+[let greeting be "Hello"]
+
+quack
+[let name be "World"]
+
+quack
+[print "{greeting}, {name}!"]
+
+-- Let's do some math
+quack quack
+[let x be 10]
+[let y be 20]
+
+quack
+[let sum be (x + y)]
+
+quack
+[print "The sum of {x} and {y} is {sum}"]

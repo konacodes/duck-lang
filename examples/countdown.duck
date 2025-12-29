@@ -1,0 +1,39 @@
+-- Goose's Dramatic Countdown
+-- Suspense! Drama! Quacking!
+
+quack
+[print "GOOSE MISSION CONTROL"]
+quack
+[print "====================="]
+quack
+[print ""]
+
+quack
+[let countdown be 10]
+
+quack
+[while countdown > 0 do
+  quack [print "T-minus {countdown}..."]
+
+  quack
+  [if countdown == 5 then
+    quack [print "  *nervous honking*"]
+  otherwise
+    quack
+    [if countdown == 3 then
+      quack [print "  *feathers rustling*"]
+    otherwise
+      quack
+      [if countdown == 1 then
+        quack [print "  *INTENSE GOOSE STARE*"]
+      ]
+    ]
+  ]
+
+  quack [countdown becomes countdown - 1]
+]
+
+quack quack quack
+[print ""]
+[print "🚀 LIFTOFF! 🪿"]
+[print "The goose has launched!"]
