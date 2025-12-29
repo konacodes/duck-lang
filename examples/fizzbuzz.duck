@@ -1,0 +1,29 @@
+-- FizzBuzz in Duck
+-- A classic, but with more quacking
+
+quack
+[let i be 1]
+
+quack
+[while i <= 30 do
+  quack
+  [if (i % 15) == 0 then
+    quack [print "FizzBuzz"]
+  otherwise
+    quack
+    [if (i % 3) == 0 then
+      quack [print "Fizz"]
+    otherwise
+      quack
+      [if (i % 5) == 0 then
+        quack [print "Buzz"]
+      otherwise
+        quack [print i]
+      ]
+    ]
+  ]
+  quack [i becomes i + 1]
+]
+
+quack
+[print "Done! That was a lot of quacking."]

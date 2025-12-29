@@ -1,0 +1,88 @@
+-- Pond Simulator: A Duck-Lang Showcase
+-- Features: structs, lists, functions, loops
+
+-- Define our duck struct
+quack
+[struct duck with [name, age, quackiness]]
+
+-- Define our pond struct
+quack
+[struct pond with [name, depth, ducks]]
+
+-- Function to create a duck
+quack
+[define make-duck taking [name, age] as
+  quack
+  [let quackiness be (age * 10)]
+  quack
+  [return duck(name, age, quackiness)]
+]
+
+-- Function to add duck to pond
+quack
+[define add-to-pond taking [pond, duck] as
+  quack [pond.ducks push duck]
+  quack [print "Added {duck.name} to {pond.name}!"]
+]
+
+-- Function to pond report
+quack
+[define pond-report taking [pond] as
+  quack [print ""]
+  quack [print "=== {pond.name} ==="]
+  quack [print "Depth: {pond.depth} feet"]
+  quack [let count be pond.ducks length]
+  quack [print "Ducks: {count}"]
+  quack [print ""]
+
+  quack
+  [for each [d] in pond.ducks do
+    quack [print "  - {d.name} (age {d.age}, quackiness: {d.quackiness})"]
+  ]
+]
+
+-- Main program
+quack
+[print "Welcome to Pond Simulator!"]
+quack
+[print ""]
+
+-- Create our pond
+quack
+[let my-pond be pond("Gerald's Pond", 5, list())]
+
+-- Create some ducks
+quack quack quack
+[let duck1 be [make-duck "Waddles" 3]]
+[let duck2 be [make-duck "Quackers" 5]]
+[let duck3 be [make-duck "Sir Honksalot" 7]]
+
+-- Add them to the pond
+quack quack quack
+[add-to-pond my-pond duck1]
+[add-to-pond my-pond duck2]
+[add-to-pond my-pond duck3]
+
+-- Show the report
+quack
+[pond-report my-pond]
+
+-- Demonstrate lambdas
+quack
+[print ""]
+quack
+[print "Testing lambdas..."]
+
+quack
+[let double be [x] -> x * 2]
+
+quack
+[let result be [double 21]]
+
+quack
+[print "Double of 21 is {result}"]
+
+quack
+[print ""]
+quack
+[print "Pond simulation complete!"]
