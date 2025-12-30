@@ -93,10 +93,26 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    /// Create a new interpreter
+    /// Create a new interpreter with math constants pre-defined
     pub fn new() -> Self {
+        Self::with_args(vec![])
+    }
+
+    /// Create a new interpreter with command-line arguments
+    pub fn with_args(args: Vec<String>) -> Self {
+        let env = Rc::new(RefCell::new(Environment::new()));
+
+        // Pre-define math constants
+        env.borrow_mut().define("PI".to_string(), Value::Number(std::f64::consts::PI));
+        env.borrow_mut().define("E".to_string(), Value::Number(std::f64::consts::E));
+        env.borrow_mut().define("TAU".to_string(), Value::Number(std::f64::consts::TAU));
+
+        // Pre-define command-line arguments as quack-args
+        let args_values: Vec<Value> = args.into_iter().map(Value::String).collect();
+        env.borrow_mut().define("quack-args".to_string(), Value::new_list(args_values));
+
         Interpreter {
-            env: Rc::new(RefCell::new(Environment::new())),
+            env,
             stats: ExecutionStats::default(),
         }
     }
@@ -377,6 +393,20 @@ impl Interpreter {
             Statement::Break => Ok(ControlFlow::Break),
 
             Statement::Continue => Ok(ControlFlow::Continue),
+
+            Statement::Honk { condition, message } => {
+                let cond_val = self.evaluate(condition, line)?;
+                if !cond_val.is_truthy() {
+                    let msg = if let Some(msg_expr) = message {
+                        let msg_val = self.evaluate(msg_expr, line)?;
+                        format!("{}", msg_val)
+                    } else {
+                        String::new()
+                    };
+                    return Err(goose::honk_failure(line, &msg));
+                }
+                Ok(ControlFlow::None)
+            }
 
             Statement::Push { list, value } => {
                 let list_val = self.evaluate(list, line)?;

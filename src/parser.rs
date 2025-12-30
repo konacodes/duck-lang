@@ -122,6 +122,8 @@ impl Parser {
         } else if self.check(TokenKind::Continue) {
             self.advance();
             Ok(Statement::Continue)
+        } else if self.check(TokenKind::Honk) {
+            self.parse_honk_statement()
         } else if self.check(TokenKind::Identifier) {
             self.parse_identifier_statement()
         } else {
@@ -382,6 +384,22 @@ impl Parser {
         let value = self.parse_expression()?;
 
         Ok(Statement::Print(value))
+    }
+
+    /// Parse: [honk <condition>] or [honk <condition> <message>]
+    fn parse_honk_statement(&mut self) -> Result<Statement, String> {
+        self.expect(TokenKind::Honk)?;
+
+        let condition = self.parse_expression()?;
+
+        // Check if there's an optional message
+        let message = if !self.check(TokenKind::RightBracket) && !self.is_at_end() {
+            Some(self.parse_expression()?)
+        } else {
+            None
+        };
+
+        Ok(Statement::Honk { condition, message })
     }
 
     /// Parse: [struct name with [field1, field2, ...]]
