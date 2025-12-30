@@ -1,88 +1,77 @@
 -- Pond Simulator: A Duck-Lang Showcase
--- Features: structs, lists, functions, loops
+-- Features: structs, lists, functions, loops, lambdas
 
 -- Define our duck struct
-quack
-[struct duck with [name, age, quackiness]]
+quack [struct duck with [name, age, quackiness]]
 
 -- Define our pond struct
-quack
-[struct pond with [name, depth, ducks]]
+quack [struct pond with [name, depth, ducks]]
 
 -- Function to create a duck
-quack
-[define make-duck taking [name, age] as
-  quack
-  [let quackiness be (age * 10)]
-  quack
-  [return duck(name, age, quackiness)]
+quack [define make-duck taking [name, age] as
+  quack [let quackiness be age * 10]
+  quack [return duck(name, age, quackiness)]
 ]
 
 -- Function to add duck to pond
-quack
-[define add-to-pond taking [pond, duck] as
-  quack [pond.ducks push duck]
-  quack [print "Added {duck.name} to {pond.name}!"]
+quack [define add-to-pond taking [p, d] as
+  quack [p.ducks push d]
+  quack [print "Added {d.name} to {p.name}!"]
 ]
 
 -- Function to pond report
-quack
-[define pond-report taking [pond] as
+quack [define pond-report taking [p] as
   quack [print ""]
-  quack [print "=== {pond.name} ==="]
-  quack [print "Depth: {pond.depth} feet"]
-  quack [let count be pond.ducks length]
+  quack [print "=== {p.name} ==="]
+  quack [print "Depth: {p.depth} feet"]
+  quack [let count be len(p.ducks)]
   quack [print "Ducks: {count}"]
   quack [print ""]
 
-  quack
-  [for each [d] in pond.ducks do
+  quack [for each [d] in p.ducks do
     quack [print "  - {d.name} (age {d.age}, quackiness: {d.quackiness})"]
   ]
 ]
 
 -- Main program
-quack
-[print "Welcome to Pond Simulator!"]
-quack
-[print ""]
+quack [print "Welcome to Pond Simulator!"]
+quack [print ""]
 
 -- Create our pond
-quack
-[let my-pond be pond("Gerald's Pond", 5, list())]
+quack [let my-pond be pond("Gerald's Pond", 5, list())]
 
 -- Create some ducks
-quack quack quack
-[let duck1 be [make-duck "Waddles" 3]]
-[let duck2 be [make-duck "Quackers" 5]]
-[let duck3 be [make-duck "Sir Honksalot" 7]]
+quack [let duck1 be make-duck("Waddles", 3)]
+quack [let duck2 be make-duck("Quackers", 5)]
+quack [let duck3 be make-duck("Sir Honksalot", 7)]
 
 -- Add them to the pond
-quack quack quack
-[add-to-pond my-pond duck1]
-[add-to-pond my-pond duck2]
-[add-to-pond my-pond duck3]
+quack [let unused1 be add-to-pond(my-pond, duck1)]
+quack [let unused2 be add-to-pond(my-pond, duck2)]
+quack [let unused3 be add-to-pond(my-pond, duck3)]
 
 -- Show the report
-quack
-[pond-report my-pond]
+quack [let unused4 be pond-report(my-pond)]
 
 -- Demonstrate lambdas
-quack
-[print ""]
-quack
-[print "Testing lambdas..."]
+quack [print ""]
+quack [print "Testing lambdas..."]
 
-quack
-[let double be [x] -> x * 2]
+quack [let double be [x] -> x * 2]
+quack [let result be double(21)]
+quack [print "Double of 21 is {result}"]
 
-quack
-[let result be [double 21]]
+-- Demonstrate higher-order functions
+quack [print ""]
+quack [print "Testing higher-order functions..."]
 
-quack
-[print "Double of 21 is {result}"]
+quack [let ages be list(3, 5, 7)]
+quack [let doubled-ages be map(ages, double)]
+quack [print "Duck ages doubled: {doubled-ages}"]
 
-quack
-[print ""]
-quack
-[print "Pond simulation complete!"]
+quack [let is-old be [age] -> age > 4]
+quack [let old-ages be filter(ages, is-old)]
+quack [print "Ages over 4: {old-ages}"]
+
+quack [print ""]
+quack [print "Pond simulation complete!"]
