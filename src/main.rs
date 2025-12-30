@@ -24,6 +24,9 @@ enum Commands {
     Run {
         /// The .duck file to run
         file: String,
+        /// Arguments to pass to the Duck program (accessible via quack-args)
+        #[arg(trailing_var_arg = true)]
+        args: Vec<String>,
     },
     /// Check a Duck file for quack issues without running
     Check {
@@ -41,13 +44,13 @@ fn main() {
     println!("{}", goose::startup());
 
     match cli.command {
-        Commands::Run { file } => run_file(&file),
+        Commands::Run { file, args } => run_file(&file, args),
         Commands::Check { file } => check_file(&file),
         Commands::Repl => run_repl(),
     }
 }
 
-fn run_file(path: &str) {
+fn run_file(path: &str, args: Vec<String>) {
     let source = match fs::read_to_string(path) {
         Ok(s) => s,
         Err(_) => {
@@ -78,8 +81,8 @@ fn run_file(path: &str) {
         }
     };
 
-    // Execute
-    let mut interpreter = interpreter::Interpreter::new();
+    // Execute with command-line arguments
+    let mut interpreter = interpreter::Interpreter::with_args(args);
     if let Err(e) = interpreter.run(blocks) {
         println!("{}", e);
     } else {

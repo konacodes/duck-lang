@@ -62,6 +62,7 @@ pub enum TokenKind {
     Print,
     Break,
     Continue,
+    Honk,
 
     // Boolean and null literals
     True,
@@ -493,6 +494,7 @@ impl Lexer {
             "print" => TokenKind::Print,
             "break" => TokenKind::Break,
             "continue" => TokenKind::Continue,
+            "honk" => TokenKind::Honk,
             "true" => TokenKind::True,
             "false" => TokenKind::False,
             "nil" => TokenKind::Nil,

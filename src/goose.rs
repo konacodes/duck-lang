@@ -522,6 +522,34 @@ pub fn goodbye() -> String {
     choose(&messages).to_string()
 }
 
+/// Generate a honk assertion failure message
+pub fn honk_failure(line: usize, custom_message: &str) -> String {
+    if !custom_message.is_empty() {
+        let prefixes = [
+            format!("HONK! Line {}: {}", line, custom_message),
+            format!("HONK HONK! Assertion failed at line {}: {}", line, custom_message),
+            format!("*AGGRESSIVE HONKING* Line {}: {}", line, custom_message),
+            format!("The goose is DISPLEASED! Line {}: {}", line, custom_message),
+        ];
+        return choose(&prefixes).clone();
+    }
+
+    let messages = [
+        format!("HONK! Assertion failed at line {}. The goose is NOT happy.", line),
+        format!("HONK HONK HONK! Your assumption was wrong at line {}!", line),
+        format!("*aggressive honking* Line {}: That condition is FALSE!", line),
+        format!("The goose has inspected your assertion at line {}. It is LIES.", line),
+        format!("HONK! Line {}: The goose trusted you. The goose was betrayed.", line),
+        format!("Line {}: *slams wing on table* THIS IS FALSE!", line),
+        format!("ASSERTION FAILURE at line {}! The council of geese is outraged!", line),
+        format!("Line {}: HONK! Your boolean is broken!", line),
+        format!("*honks in disappointment* Line {}: That's not true and you know it.", line),
+        format!("Line {}: The goose has spoken. Your assertion is invalid.", line),
+    ];
+
+    choose(&messages).clone()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
