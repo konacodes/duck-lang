@@ -427,6 +427,26 @@ impl Interpreter {
                     )),
                 }
             }
+
+            Statement::Attempt { try_block, rescue_var, rescue_block } => {
+                // Try to execute the try_block
+                let result = self.execute_statements(try_block, line);
+
+                match result {
+                    Ok(flow) => Ok(flow),
+                    Err(error_msg) => {
+                        // Error occurred, execute rescue block with error bound to rescue_var
+                        let child_env = Rc::new(RefCell::new(Environment::with_parent(Rc::clone(&self.env))));
+                        child_env.borrow_mut().define(rescue_var.clone(), Value::String(error_msg));
+                        let old_env = std::mem::replace(&mut self.env, child_env);
+
+                        let rescue_result = self.execute_statements(rescue_block, line);
+
+                        self.env = old_env;
+                        rescue_result
+                    }
+                }
+            }
         }
     }
 
@@ -1012,8 +1032,17 @@ impl Interpreter {
     fn call_function(&mut self, func: Value, args: Vec<Value>, line: usize) -> Result<Value, String> {
         match func {
             Value::BuiltinFunction(name) => {
-                builtins::call_builtin(&name, args)
-                    .map_err(|e| goose::error(ErrorKind::InvalidOperation(e), line, ""))
+                // Handle higher-order functions that need interpreter access
+                match name.as_str() {
+                    "map" => self.builtin_map(args, line),
+                    "filter" => self.builtin_filter(args, line),
+                    "fold" => self.builtin_fold(args, line),
+                    "find" => self.builtin_find(args, line),
+                    "any" => self.builtin_any(args, line),
+                    "all" => self.builtin_all(args, line),
+                    _ => builtins::call_builtin(&name, args)
+                        .map_err(|e| goose::error(ErrorKind::InvalidOperation(e), line, ""))
+                }
             }
 
             Value::Function { name, params, body, closure } => {
@@ -1130,6 +1159,195 @@ impl Interpreter {
                 "",
             )),
         }
+    }
+
+    /// Helper to call a function/lambda with given arguments
+    fn call_callable(&mut self, callable: Value, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        self.call_function(callable, args, line)
+    }
+
+    /// Built-in map: apply function to each element
+    fn builtin_map(&mut self, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        if args.len() != 2 {
+            return Err(goose::error(
+                ErrorKind::ArgumentMismatch { expected: 2, got: args.len() },
+                line,
+                "map(list, function)",
+            ));
+        }
+
+        let list = match &args[0] {
+            Value::List(items) => items.borrow().clone(),
+            other => return Err(goose::error(
+                ErrorKind::TypeError { expected: "list".to_string(), got: other.type_name().to_string() },
+                line,
+                "in map() first argument",
+            )),
+        };
+
+        let func = args[1].clone();
+        let mut results = Vec::new();
+
+        for item in list {
+            let result = self.call_callable(func.clone(), vec![item], line)?;
+            results.push(result);
+        }
+
+        Ok(Value::new_list(results))
+    }
+
+    /// Built-in filter: keep elements that satisfy predicate
+    fn builtin_filter(&mut self, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        if args.len() != 2 {
+            return Err(goose::error(
+                ErrorKind::ArgumentMismatch { expected: 2, got: args.len() },
+                line,
+                "filter(list, predicate)",
+            ));
+        }
+
+        let list = match &args[0] {
+            Value::List(items) => items.borrow().clone(),
+            other => return Err(goose::error(
+                ErrorKind::TypeError { expected: "list".to_string(), got: other.type_name().to_string() },
+                line,
+                "in filter() first argument",
+            )),
+        };
+
+        let func = args[1].clone();
+        let mut results = Vec::new();
+
+        for item in list {
+            let result = self.call_callable(func.clone(), vec![item.clone()], line)?;
+            if result.is_truthy() {
+                results.push(item);
+            }
+        }
+
+        Ok(Value::new_list(results))
+    }
+
+    /// Built-in fold: reduce list to single value
+    fn builtin_fold(&mut self, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        if args.len() != 3 {
+            return Err(goose::error(
+                ErrorKind::ArgumentMismatch { expected: 3, got: args.len() },
+                line,
+                "fold(list, initial, function)",
+            ));
+        }
+
+        let list = match &args[0] {
+            Value::List(items) => items.borrow().clone(),
+            other => return Err(goose::error(
+                ErrorKind::TypeError { expected: "list".to_string(), got: other.type_name().to_string() },
+                line,
+                "in fold() first argument",
+            )),
+        };
+
+        let mut accumulator = args[1].clone();
+        let func = args[2].clone();
+
+        for item in list {
+            accumulator = self.call_callable(func.clone(), vec![accumulator, item], line)?;
+        }
+
+        Ok(accumulator)
+    }
+
+    /// Built-in find: find first element matching predicate
+    fn builtin_find(&mut self, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        if args.len() != 2 {
+            return Err(goose::error(
+                ErrorKind::ArgumentMismatch { expected: 2, got: args.len() },
+                line,
+                "find(list, predicate)",
+            ));
+        }
+
+        let list = match &args[0] {
+            Value::List(items) => items.borrow().clone(),
+            other => return Err(goose::error(
+                ErrorKind::TypeError { expected: "list".to_string(), got: other.type_name().to_string() },
+                line,
+                "in find() first argument",
+            )),
+        };
+
+        let func = args[1].clone();
+
+        for item in list {
+            let result = self.call_callable(func.clone(), vec![item.clone()], line)?;
+            if result.is_truthy() {
+                return Ok(item);
+            }
+        }
+
+        Ok(Value::Null)
+    }
+
+    /// Built-in any: check if any element satisfies predicate
+    fn builtin_any(&mut self, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        if args.len() != 2 {
+            return Err(goose::error(
+                ErrorKind::ArgumentMismatch { expected: 2, got: args.len() },
+                line,
+                "any(list, predicate)",
+            ));
+        }
+
+        let list = match &args[0] {
+            Value::List(items) => items.borrow().clone(),
+            other => return Err(goose::error(
+                ErrorKind::TypeError { expected: "list".to_string(), got: other.type_name().to_string() },
+                line,
+                "in any() first argument",
+            )),
+        };
+
+        let func = args[1].clone();
+
+        for item in list {
+            let result = self.call_callable(func.clone(), vec![item], line)?;
+            if result.is_truthy() {
+                return Ok(Value::Boolean(true));
+            }
+        }
+
+        Ok(Value::Boolean(false))
+    }
+
+    /// Built-in all: check if all elements satisfy predicate
+    fn builtin_all(&mut self, args: Vec<Value>, line: usize) -> Result<Value, String> {
+        if args.len() != 2 {
+            return Err(goose::error(
+                ErrorKind::ArgumentMismatch { expected: 2, got: args.len() },
+                line,
+                "all(list, predicate)",
+            ));
+        }
+
+        let list = match &args[0] {
+            Value::List(items) => items.borrow().clone(),
+            other => return Err(goose::error(
+                ErrorKind::TypeError { expected: "list".to_string(), got: other.type_name().to_string() },
+                line,
+                "in all() first argument",
+            )),
+        };
+
+        let func = args[1].clone();
+
+        for item in list {
+            let result = self.call_callable(func.clone(), vec![item], line)?;
+            if !result.is_truthy() {
+                return Ok(Value::Boolean(false));
+            }
+        }
+
+        Ok(Value::Boolean(true))
     }
 }
 

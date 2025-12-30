@@ -90,6 +90,16 @@ quack [honk x > 0]                    -- Passes silently
 quack [honk x < 0 "x must be negative"]  -- HONK! x must be negative
 ```
 
+**Error Handling** (attempt/rescue)
+```duck
+quack [attempt
+  quack [let data be read-file("missing.txt")]
+  quack [print data]
+rescue err
+  quack [print "Failed: {err}"]
+]
+```
+
 **Multiple quacks** = multiple blocks authorized
 ```duck
 quack quack quack
@@ -123,6 +133,24 @@ At the end, it rates your code from 1-10. Good luck getting a 10.
 
 **Lists**
 - `len`, `push`, `pop`, `range`, `reverse`, `sort`, `contains`
+
+**Higher-Order Functions**
+- `map(list, fn)` - Apply function to each element
+- `filter(list, fn)` - Keep elements where function returns true
+- `fold(list, initial, fn)` - Reduce list to single value
+- `find(list, fn)` - Find first element matching predicate
+- `any(list, fn)` - Check if any element satisfies predicate
+- `all(list, fn)` - Check if all elements satisfy predicate
+
+```duck
+quack [let nums be [1, 2, 3, 4, 5]]
+quack [let doubled be map(nums, [x] -> x * 2)]       -- [2, 4, 6, 8, 10]
+quack [let evens be filter(nums, [x] -> x % 2 == 0)] -- [2, 4]
+quack [let sum be fold(nums, 0, [a, x] -> a + x)]    -- 15
+quack [let first-even be find(nums, [x] -> x % 2 == 0)]  -- 2
+quack [let has-big be any(nums, [x] -> x > 3)]       -- true
+quack [let all-pos be all(nums, [x] -> x > 0)]       -- true
+```
 
 **Strings**
 - `len`, `split`, `join`, `trim`, `uppercase`, `lowercase`, `contains`, `reverse`
