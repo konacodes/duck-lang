@@ -512,6 +512,17 @@ impl Parser {
                     },
                     value,
                 })
+            } else if self.check(TokenKind::Push) {
+                // Field push: [obj.field push value]
+                self.advance();
+                let value = self.parse_expression()?;
+                Ok(Statement::Push {
+                    list: Expr::FieldAccess {
+                        object: Box::new(Expr::Identifier(name)),
+                        field,
+                    },
+                    value,
+                })
             } else {
                 // Field access as expression
                 let expr = Expr::FieldAccess {
@@ -898,6 +909,23 @@ impl Parser {
             }
 
             return Ok(Expr::Identifier(name));
+        }
+
+        // Bracket list expression: [x, y, z] (used for lambda params and list literals)
+        if self.check(TokenKind::LeftBracket) {
+            self.advance();
+            let mut elements = Vec::new();
+
+            if !self.check(TokenKind::RightBracket) {
+                elements.push(self.parse_expression()?);
+                while self.check(TokenKind::Comma) {
+                    self.advance();
+                    elements.push(self.parse_expression()?);
+                }
+            }
+
+            self.expect(TokenKind::RightBracket)?;
+            return Ok(Expr::List(elements));
         }
 
         Err(format!(
