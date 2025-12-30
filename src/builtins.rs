@@ -45,6 +45,13 @@ pub fn is_builtin(name: &str) -> bool {
             | "write-file"
             | "append-file"
             | "file-exists"
+            // Phase 2: Higher-order functions (handled in interpreter)
+            | "map"
+            | "filter"
+            | "fold"
+            | "find"
+            | "any"
+            | "all"
     )
 }
 

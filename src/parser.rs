@@ -124,6 +124,8 @@ impl Parser {
             Ok(Statement::Continue)
         } else if self.check(TokenKind::Honk) {
             self.parse_honk_statement()
+        } else if self.check(TokenKind::Attempt) {
+            self.parse_attempt_statement()
         } else if self.check(TokenKind::Identifier) {
             self.parse_identifier_statement()
         } else {
@@ -400,6 +402,52 @@ impl Parser {
         };
 
         Ok(Statement::Honk { condition, message })
+    }
+
+    /// Parse: [attempt ... rescue err ...]
+    fn parse_attempt_statement(&mut self) -> Result<Statement, String> {
+        self.expect(TokenKind::Attempt)?;
+
+        // Parse the try block - collect statements until we hit 'rescue'
+        let try_block = self.parse_attempt_body()?;
+
+        self.expect(TokenKind::Rescue)?;
+
+        // Parse the error variable name
+        let rescue_var = self.expect_identifier()?;
+
+        // Parse the rescue block
+        let rescue_block = self.parse_statement_body()?;
+
+        Ok(Statement::Attempt {
+            try_block,
+            rescue_var,
+            rescue_block,
+        })
+    }
+
+    /// Parse statements until we hit 'rescue' keyword
+    fn parse_attempt_body(&mut self) -> Result<Vec<Statement>, String> {
+        let mut body = Vec::new();
+
+        while !self.check(TokenKind::Rescue) && !self.check(TokenKind::RightBracket) && !self.is_at_end() {
+            // Count quacks
+            while self.check(TokenKind::Quack) {
+                self.advance();
+                self.quack_count += 1;
+            }
+
+            if self.check(TokenKind::LeftBracket) {
+                let block = self.parse_block()?;
+                body.push(block.statement);
+            } else if self.check(TokenKind::Rescue) || self.check(TokenKind::RightBracket) {
+                break;
+            } else if !self.is_at_end() {
+                break;
+            }
+        }
+
+        Ok(body)
     }
 
     /// Parse: [struct name with [field1, field2, ...]]

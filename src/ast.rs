@@ -260,6 +260,13 @@ pub enum Statement {
         list: Expr,
         value: Expr,
     },
+
+    /// Error handling: attempt ... rescue err ...
+    Attempt {
+        try_block: Vec<Statement>,
+        rescue_var: String,
+        rescue_block: Vec<Statement>,
+    },
 }
 
 /// A block is a statement with metadata about parsing
