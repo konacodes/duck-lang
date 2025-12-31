@@ -122,6 +122,10 @@ impl Parser {
         } else if self.check(TokenKind::Continue) {
             self.advance();
             Ok(Statement::Continue)
+        } else if self.check(TokenKind::Honk) {
+            self.parse_honk_statement()
+        } else if self.check(TokenKind::Attempt) {
+            self.parse_attempt_statement()
         } else if self.check(TokenKind::Identifier) {
             self.parse_identifier_statement()
         } else {
@@ -384,6 +388,68 @@ impl Parser {
         Ok(Statement::Print(value))
     }
 
+    /// Parse: [honk <condition>] or [honk <condition> <message>]
+    fn parse_honk_statement(&mut self) -> Result<Statement, String> {
+        self.expect(TokenKind::Honk)?;
+
+        let condition = self.parse_expression()?;
+
+        // Check if there's an optional message
+        let message = if !self.check(TokenKind::RightBracket) && !self.is_at_end() {
+            Some(self.parse_expression()?)
+        } else {
+            None
+        };
+
+        Ok(Statement::Honk { condition, message })
+    }
+
+    /// Parse: [attempt ... rescue err ...]
+    fn parse_attempt_statement(&mut self) -> Result<Statement, String> {
+        self.expect(TokenKind::Attempt)?;
+
+        // Parse the try block - collect statements until we hit 'rescue'
+        let try_block = self.parse_attempt_body()?;
+
+        self.expect(TokenKind::Rescue)?;
+
+        // Parse the error variable name
+        let rescue_var = self.expect_identifier()?;
+
+        // Parse the rescue block
+        let rescue_block = self.parse_statement_body()?;
+
+        Ok(Statement::Attempt {
+            try_block,
+            rescue_var,
+            rescue_block,
+        })
+    }
+
+    /// Parse statements until we hit 'rescue' keyword
+    fn parse_attempt_body(&mut self) -> Result<Vec<Statement>, String> {
+        let mut body = Vec::new();
+
+        while !self.check(TokenKind::Rescue) && !self.check(TokenKind::RightBracket) && !self.is_at_end() {
+            // Count quacks
+            while self.check(TokenKind::Quack) {
+                self.advance();
+                self.quack_count += 1;
+            }
+
+            if self.check(TokenKind::LeftBracket) {
+                let block = self.parse_block()?;
+                body.push(block.statement);
+            } else if self.check(TokenKind::Rescue) || self.check(TokenKind::RightBracket) {
+                break;
+            } else if !self.is_at_end() {
+                break;
+            }
+        }
+
+        Ok(body)
+    }
+
     /// Parse: [struct name with [field1, field2, ...]]
     fn parse_struct_definition(&mut self) -> Result<Statement, String> {
         self.expect(TokenKind::Struct)?;
@@ -441,6 +507,17 @@ impl Parser {
                 let value = self.parse_expression()?;
                 Ok(Statement::Assign {
                     target: AssignTarget::Field {
+                        object: Box::new(Expr::Identifier(name)),
+                        field,
+                    },
+                    value,
+                })
+            } else if self.check(TokenKind::Push) {
+                // Field push: [obj.field push value]
+                self.advance();
+                let value = self.parse_expression()?;
+                Ok(Statement::Push {
+                    list: Expr::FieldAccess {
                         object: Box::new(Expr::Identifier(name)),
                         field,
                     },
@@ -832,6 +909,23 @@ impl Parser {
             }
 
             return Ok(Expr::Identifier(name));
+        }
+
+        // Bracket list expression: [x, y, z] (used for lambda params and list literals)
+        if self.check(TokenKind::LeftBracket) {
+            self.advance();
+            let mut elements = Vec::new();
+
+            if !self.check(TokenKind::RightBracket) {
+                elements.push(self.parse_expression()?);
+                while self.check(TokenKind::Comma) {
+                    self.advance();
+                    elements.push(self.parse_expression()?);
+                }
+            }
+
+            self.expect(TokenKind::RightBracket)?;
+            return Ok(Expr::List(elements));
         }
 
         Err(format!(

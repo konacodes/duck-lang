@@ -249,10 +249,23 @@ pub enum Statement {
     /// Continue statement: continue
     Continue,
 
+    /// Assertion: honk condition [message]
+    Honk {
+        condition: Expr,
+        message: Option<Expr>,
+    },
+
     /// Push to list: list push value
     Push {
         list: Expr,
         value: Expr,
+    },
+
+    /// Error handling: attempt ... rescue err ...
+    Attempt {
+        try_block: Vec<Statement>,
+        rescue_var: String,
+        rescue_block: Vec<Statement>,
     },
 }
 
