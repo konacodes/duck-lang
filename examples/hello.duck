@@ -8,7 +8,7 @@ quack
 [let name be "World"]
 
 quack
-[print "{greeting}, {name}!"]
+[print f"{greeting}, {name}!"]
 
 -- Let's do some math
 quack quack
@@ -19,4 +19,4 @@ quack
 [let sum be (x + y)]
 
 quack
-[print "The sum of {x} and {y} is {sum}"]
+[print f"The sum of {x} and {y} is {sum}"]

@@ -2,10 +2,13 @@
 // Only executes blocks that were properly "quacked"
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::ast::{AssignTarget, BinaryOp, Block, Expr, Literal, Pattern, Statement, StringPart, UnaryOp};
+use crate::lexer;
+use crate::parser;
 use crate::builtins;
 use crate::goose::{self, ErrorKind, ExecutionStats};
 use crate::values::{Closure, Value};
@@ -97,6 +100,8 @@ pub struct Interpreter {
     instruction_count: usize,
     /// Maximum instructions allowed (None = unlimited)
     max_instructions: Option<usize>,
+    /// Files already imported (to prevent circular imports)
+    imported_files: HashSet<PathBuf>,
 }
 
 impl Interpreter {
@@ -123,6 +128,7 @@ impl Interpreter {
             stats: ExecutionStats::default(),
             instruction_count: 0,
             max_instructions: Some(DEFAULT_INSTRUCTION_LIMIT),
+            imported_files: HashSet::new(),
         }
     }
 
@@ -478,7 +484,83 @@ impl Interpreter {
                     }
                 }
             }
+
+            Statement::Migrate { path, alias } => {
+                self.execute_migrate(path, alias.as_ref(), line)?;
+                Ok(ControlFlow::None)
+            }
         }
+    }
+
+    /// Execute a migrate statement - import code from another Duck file
+    fn execute_migrate(&mut self, path: &str, alias: Option<&String>, _line: usize) -> Result<(), String> {
+        // Resolve the path relative to the current working directory
+        let file_path = PathBuf::from(path);
+
+        // Get canonical path to handle duplicates properly
+        let canonical_path = file_path.canonicalize().map_err(|e| {
+            format!("The flock couldn't find '{}': {} - maybe they flew south?", path, e)
+        })?;
+
+        // Check for circular imports
+        if self.imported_files.contains(&canonical_path) {
+            // Already imported, skip silently (this is fine for circular deps)
+            return Ok(());
+        }
+
+        // Mark as imported
+        self.imported_files.insert(canonical_path.clone());
+
+        // Read the file
+        let source = std::fs::read_to_string(&canonical_path).map_err(|e| {
+            format!("The goose couldn't read '{}': {}", path, e)
+        })?;
+
+        // Lex and parse
+        let tokens = lexer::lex(&source).map_err(|e| {
+            format!("Syntax error in '{}': {}", path, e)
+        })?;
+        let mut parser = parser::Parser::new(tokens);
+        let blocks = parser.parse().map_err(|errors| {
+            format!("Parse error in '{}': {}", path, errors.join(", "))
+        })?;
+
+        // Execute the blocks and collect definitions
+        if let Some(namespace) = alias {
+            // With alias: execute in a child environment, then create a struct-like namespace
+            let child_env = Rc::new(RefCell::new(Environment::with_parent(Rc::clone(&self.env))));
+            let old_env = std::mem::replace(&mut self.env, child_env);
+
+            // Execute all blocks
+            for block in &blocks {
+                if block.was_quacked {
+                    if let Err(e) = self.execute_block(block) {
+                        self.env = old_env;
+                        return Err(e);
+                    }
+                }
+            }
+
+            // Collect all definitions from the child environment
+            let child_values = self.env.borrow().values.clone();
+            self.env = old_env;
+
+            // Create a namespace struct with all the definitions
+            let namespace_struct = Value::new_struct(namespace.clone(), child_values);
+            self.env.borrow_mut().define(namespace.clone(), namespace_struct);
+
+            println!("The flock has arrived from '{}' as {}!", path, namespace);
+        } else {
+            // Without alias: execute directly in current scope (definitions become globals)
+            for block in &blocks {
+                if block.was_quacked {
+                    self.execute_block(block)?;
+                }
+            }
+            println!("The flock has arrived from '{}'!", path);
+        }
+
+        Ok(())
     }
 
     /// Execute multiple statements

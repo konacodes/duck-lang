@@ -13,7 +13,7 @@ quack
 
 quack
 [while countdown > 0 do
-  quack [print "T-minus {countdown}..."]
+  quack [print f"T-minus {countdown}..."]
 
   quack
   [if countdown == 5 then

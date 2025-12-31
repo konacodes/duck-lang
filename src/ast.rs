@@ -267,6 +267,12 @@ pub enum Statement {
         rescue_var: String,
         rescue_block: Vec<Statement>,
     },
+
+    /// Module import: migrate "path" [as alias]
+    Migrate {
+        path: String,
+        alias: Option<String>,
+    },
 }
 
 /// A block is a statement with metadata about parsing

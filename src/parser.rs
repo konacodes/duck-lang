@@ -126,6 +126,8 @@ impl Parser {
             self.parse_honk_statement()
         } else if self.check(TokenKind::Attempt) {
             self.parse_attempt_statement()
+        } else if self.check(TokenKind::Migrate) {
+            self.parse_migrate_statement()
         } else if self.check(TokenKind::Identifier) {
             self.parse_identifier_statement()
         } else {
@@ -448,6 +450,30 @@ impl Parser {
         }
 
         Ok(body)
+    }
+
+    /// Parse: [migrate "path" [as alias]]
+    fn parse_migrate_statement(&mut self) -> Result<Statement, String> {
+        self.expect(TokenKind::Migrate)?;
+
+        // Expect a string literal for the path
+        if !self.check(TokenKind::StringLiteral) {
+            return Err(format!(
+                "Expected file path string after 'migrate', got {:?}",
+                self.peek().map(|t| &t.kind)
+            ));
+        }
+        let path = self.advance().lexeme.clone();
+
+        // Check for optional 'as' alias
+        let alias = if self.check(TokenKind::As) {
+            self.advance();
+            Some(self.expect_identifier()?)
+        } else {
+            None
+        };
+
+        Ok(Statement::Migrate { path, alias })
     }
 
     /// Parse: [struct name with [field1, field2, ...]]

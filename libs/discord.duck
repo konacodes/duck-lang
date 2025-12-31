@@ -1,0 +1,296 @@
+-- Discord Library for Duck
+-- Provides basic Discord API primitives for bot development
+
+-- =============================================================================
+-- Configuration
+-- =============================================================================
+
+-- Discord API base URL
+quack [let DISCORD-API be "https://discord.com/api/v10"]
+
+-- =============================================================================
+-- Authentication Headers
+-- =============================================================================
+
+-- Create authorization headers for bot requests
+-- Returns a list of header key-value pairs
+quack [define discord-headers taking [token] as
+  quack [return list(
+    "Authorization", "Bot " + token,
+    "Content-Type", "application/json",
+    "User-Agent", "DuckBot (https://github.com/duck-lang, 1.0)"
+  )]
+]
+
+-- =============================================================================
+-- JSON Helpers (build JSON strings)
+-- =============================================================================
+
+-- Build a simple JSON object with one string field
+quack [define json-content taking [content] as
+  quack [return "{\"content\":\"" + content + "\"}"]
+]
+
+-- Build JSON for a message with reply reference
+quack [define json-reply taking [content, message-id] as
+  quack [return "{\"content\":\"" + content + "\",\"message_reference\":{\"message_id\":\"" + message-id + "\"}}"]
+]
+
+-- Build JSON for an embed
+quack [define json-embed taking [title, description, color] as
+  quack [let color-str be string(color)]
+  quack [return "{\"embeds\":[{\"title\":\"" + title + "\",\"description\":\"" + description + "\",\"color\":" + color-str + "}]}"]
+]
+
+-- =============================================================================
+-- Message Functions
+-- =============================================================================
+
+-- Send a message to a channel
+quack [define discord-send taking [token, channel-id, content] as
+  quack [let url be DISCORD-API + "/channels/" + channel-id + "/messages"]
+  quack [let payload be json-content(content)]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-post(url, payload, headers)]
+    quack [if response.status >= 200 and response.status < 300 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [print f"Discord API error: {response.status}"]
+      quack [return nil]
+    ]
+  rescue err
+    quack [print f"Failed to send message: {err}"]
+    quack [return nil]
+  ]
+]
+
+-- Send a message with an embed
+quack [define discord-send-embed taking [token, channel-id, title, description, color] as
+  quack [let url be DISCORD-API + "/channels/" + channel-id + "/messages"]
+  quack [let payload be json-embed(title, description, color)]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-post(url, payload, headers)]
+    quack [if response.status >= 200 and response.status < 300 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [print f"Discord API error: {response.status}"]
+      quack [return nil]
+    ]
+  rescue err
+    quack [print f"Failed to send embed: {err}"]
+    quack [return nil]
+  ]
+]
+
+-- Reply to a message
+quack [define discord-reply taking [token, channel-id, message-id, content] as
+  quack [let url be DISCORD-API + "/channels/" + channel-id + "/messages"]
+  quack [let payload be json-reply(content, message-id)]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-post(url, payload, headers)]
+    quack [if response.status >= 200 and response.status < 300 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return nil]
+    ]
+  rescue err
+    quack [return nil]
+  ]
+]
+
+-- =============================================================================
+-- Channel Functions
+-- =============================================================================
+
+-- Get channel information
+quack [define discord-get-channel taking [token, channel-id] as
+  quack [let url be DISCORD-API + "/channels/" + channel-id]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-get(url, headers)]
+    quack [if response.status == 200 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return nil]
+    ]
+  rescue err
+    quack [return nil]
+  ]
+]
+
+-- Get recent messages from a channel
+quack [define discord-get-messages taking [token, channel-id, limit] as
+  quack [let limit-str be string(limit)]
+  quack [let url be DISCORD-API + "/channels/" + channel-id + "/messages?limit=" + limit-str]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-get(url, headers)]
+    quack [if response.status == 200 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return list()]
+    ]
+  rescue err
+    quack [return list()]
+  ]
+]
+
+-- =============================================================================
+-- User Functions
+-- =============================================================================
+
+-- Get current bot user info
+quack [define discord-get-me taking [token] as
+  quack [let url be DISCORD-API + "/users/@me"]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-get(url, headers)]
+    quack [if response.status == 200 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return nil]
+    ]
+  rescue err
+    quack [return nil]
+  ]
+]
+
+-- Get a user by ID
+quack [define discord-get-user taking [token, user-id] as
+  quack [let url be DISCORD-API + "/users/" + user-id]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-get(url, headers)]
+    quack [if response.status == 200 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return nil]
+    ]
+  rescue err
+    quack [return nil]
+  ]
+]
+
+-- =============================================================================
+-- Guild (Server) Functions
+-- =============================================================================
+
+-- Get guild information
+quack [define discord-get-guild taking [token, guild-id] as
+  quack [let url be DISCORD-API + "/guilds/" + guild-id]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-get(url, headers)]
+    quack [if response.status == 200 then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return nil]
+    ]
+  rescue err
+    quack [return nil]
+  ]
+]
+
+-- =============================================================================
+-- Reaction Functions
+-- =============================================================================
+
+-- Add a reaction to a message (emoji should be URL encoded)
+quack [define discord-react taking [token, channel-id, message-id, emoji] as
+  quack [let url be DISCORD-API + "/channels/" + channel-id + "/messages/" + message-id + "/reactions/" + emoji + "/@me"]
+  quack [let headers be discord-headers(token)]
+
+  quack [attempt
+    quack [let response be http-post(url, "", headers)]
+    quack [return response.status == 204]
+  rescue err
+    quack [return false]
+  ]
+]
+
+-- =============================================================================
+-- Utility Functions
+-- =============================================================================
+
+-- Check if a message starts with a command prefix
+quack [define is-command taking [content, prefix] as
+  quack [if len(content) < len(prefix) then
+    quack [return false]
+  ]
+  -- Check if first character matches prefix
+  quack [let first-char be content at 0]
+  quack [return first-char == prefix]
+]
+
+-- Parse command and arguments from message content
+quack [define parse-command taking [content, prefix] as
+  quack [let parts be split(content, " ")]
+  quack [let cmd be ""]
+
+  quack [if len(parts) > 0 then
+    quack [let first be parts at 0]
+    -- Remove prefix from command
+    -- split("!ping", "") returns ["", "!", "p", "i", "n", "g", ""]
+    -- So we need to skip len(prefix) + 1 to account for leading empty string
+    quack [if len(first) > len(prefix) then
+      quack [let chars be split(first, "")]
+      quack [let cmd-chars be list()]
+      quack [let i be len(prefix) + 1]
+      quack [while i < len(chars) - 1 do
+        quack [cmd-chars push chars at i]
+        quack [i becomes i + 1]
+      ]
+      quack [cmd becomes join(cmd-chars, "")]
+    ]
+  ]
+
+  -- Get arguments (everything after first space-separated word)
+  quack [let args be list()]
+  quack [let j be 1]
+  quack [while j < len(parts) do
+    quack [args push parts at j]
+    quack [j becomes j + 1]
+  ]
+
+  -- Return a struct with command and args
+  quack [struct command-result with [command, args]]
+  quack [return command-result(cmd, args)]
+]
+
+-- Format a user mention
+quack [define mention-user taking [user-id] as
+  quack [return "<@" + user-id + ">"]
+]
+
+-- Format a channel mention
+quack [define mention-channel taking [channel-id] as
+  quack [return "<#" + channel-id + ">"]
+]
+
+-- Format a role mention
+quack [define mention-role taking [role-id] as
+  quack [return "<@&" + role-id + ">"]
+]
+
+-- Discord embed colors (decimal values)
+quack [let COLOR-RED be 15158332]
+quack [let COLOR-GREEN be 3066993]
+quack [let COLOR-BLUE be 3447003]
+quack [let COLOR-YELLOW be 16776960]
+quack [let COLOR-PURPLE be 10181046]
+quack [let COLOR-ORANGE be 15105570]
+quack [let COLOR-PINK be 15277667]
+quack [let COLOR-DUCK be 16761095]
+
+quack [print "Discord library loaded!"]

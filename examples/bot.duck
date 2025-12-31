@@ -1,0 +1,105 @@
+-- Simple Discord Bot Example
+-- Demonstrates using the Discord library with migrate
+-- Note: This is a demonstration of the API, not a real bot
+-- Real Discord bots need WebSocket connections for real-time events
+
+quack [print "=== Duck Discord Bot ==="]
+quack [print ""]
+
+-- Load the Discord library
+quack [migrate "libs/discord.duck" as discord]
+
+-- Get bot token from environment
+quack [let token be env("DISCORD_TOKEN")]
+quack [let channel be env("DISCORD_CHANNEL")]
+
+quack [if token == "" then
+  quack [print "Error: DISCORD_TOKEN environment variable not set"]
+  quack [print "Set it with: export DISCORD_TOKEN=your_bot_token"]
+otherwise
+  quack [print "Bot token loaded!"]
+]
+
+quack [if channel == "" then
+  quack [print "Error: DISCORD_CHANNEL environment variable not set"]
+  quack [print "Set it with: export DISCORD_CHANNEL=your_channel_id"]
+otherwise
+  quack [print f"Channel ID: {channel}"]
+]
+
+-- Demonstrate command parsing
+quack [print ""]
+quack [print "=== Command Parsing Demo ==="]
+
+quack [let test-messages be list(
+  "!ping",
+  "!echo Hello, World!",
+  "!duck quack quack",
+  "not a command"
+)]
+
+quack [for each [msg] in test-messages do
+  quack [print ""]
+  quack [print f"Message: {msg}"]
+
+  quack [if discord.is-command(msg, "!") then
+    quack [let parsed be discord.parse-command(msg, "!")]
+    quack [print f"  Command: {parsed.command}"]
+    quack [print f"  Args: {parsed.args}"]
+
+    -- Handle !ping command
+    quack [if parsed.command == "ping" then
+      quack [print "  Response: Pong! The duck is responsive!"]
+    ]
+
+    -- Handle !echo command
+    quack [if parsed.command == "echo" then
+      quack [let echo-text be join(parsed.args, " ")]
+      quack [print f"  Response: {echo-text}"]
+    ]
+
+    -- Handle !duck command
+    quack [if parsed.command == "duck" then
+      quack [print "  Response: QUACK QUACK QUACK!"]
+    ]
+  otherwise
+    quack [print "  Not a command"]
+  ]
+]
+
+-- Demonstrate sending a message (only if token and channel are set)
+quack [print ""]
+quack [print "=== API Demo ==="]
+
+quack [if token != "" and channel != "" then
+  quack [print "Attempting to send a ping response..."]
+
+  quack [attempt
+    -- Create embed for the response
+    quack [let response be discord.discord-send-embed(
+      token,
+      channel,
+      "Pong!",
+      "The duck responded in record time!",
+      discord.COLOR-DUCK
+    )]
+
+    quack [if response != nil then
+      quack [print "Message sent successfully!"]
+      quack [print f"Message ID: {response.id}"]
+    otherwise
+      quack [print "Failed to send message"]
+    ]
+  rescue err
+    quack [print f"Error sending message: {err}"]
+  ]
+otherwise
+  quack [print "Skipping API demo (token or channel not configured)"]
+]
+
+quack [print ""]
+quack [print "=== Bot Demo Complete ==="]
+quack [print "To run a real bot, you would need:"]
+quack [print "  1. WebSocket support for receiving events"]
+quack [print "  2. Event loop to process incoming messages"]
+quack [print "  3. This library provides the API primitives!"]

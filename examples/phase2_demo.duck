@@ -16,41 +16,41 @@ quack [print ""]
 
 -- Create test data
 quack [let numbers be list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)]
-quack [print "Original list: {numbers}"]
+quack [print f"Original list: {numbers}"]
 quack [print ""]
 
 -- MAP: Transform each element
 quack [print "MAP - Transform elements:"]
 quack [let double be [x] -> x * 2]
 quack [let doubled be map(numbers, double)]
-quack [print "  Doubled: {doubled}"]
+quack [print f"  Doubled: {doubled}"]
 
 quack [let square be [x] -> x * x]
 quack [let squared be map(numbers, square)]
-quack [print "  Squared: {squared}"]
+quack [print f"  Squared: {squared}"]
 quack [print ""]
 
 -- FILTER: Keep elements matching condition
 quack [print "FILTER - Select elements:"]
 quack [let is-even be [x] -> x % 2 == 0]
 quack [let evens be filter(numbers, is-even)]
-quack [print "  Even numbers: {evens}"]
+quack [print f"  Even numbers: {evens}"]
 
 quack [let greater-than-5 be [x] -> x > 5]
 quack [let big-nums be filter(numbers, greater-than-5)]
-quack [print "  Numbers > 5: {big-nums}"]
+quack [print f"  Numbers > 5: {big-nums}"]
 quack [print ""]
 
 -- FOLD: Reduce to single value
 quack [print "FOLD - Reduce to single value:"]
 quack [let add be [acc, x] -> acc + x]
 quack [let sum be fold(numbers, 0, add)]
-quack [print "  Sum: {sum}"]
+quack [print f"  Sum: {sum}"]
 
 quack [let multiply be [acc, x] -> acc * x]
 quack [let first-five be list(1, 2, 3, 4, 5)]
 quack [let product be fold(first-five, 1, multiply)]
-quack [print "  Product of 1-5: {product}"]
+quack [print f"  Product of 1-5: {product}"]
 
 quack [define find-max taking [current-max, x] as
   quack [if x > current-max then
@@ -60,41 +60,41 @@ quack [define find-max taking [current-max, x] as
   ]
 ]
 quack [let maximum be fold(numbers, 0, find-max)]
-quack [print "  Maximum: {maximum}"]
+quack [print f"  Maximum: {maximum}"]
 quack [print ""]
 
 -- FIND: Get first matching element
 quack [print "FIND - First matching element:"]
 quack [let first-even be find(numbers, is-even)]
-quack [print "  First even: {first-even}"]
+quack [print f"  First even: {first-even}"]
 
 quack [let over-seven be [x] -> x > 7]
 quack [let first-big be find(numbers, over-seven)]
-quack [print "  First > 7: {first-big}"]
+quack [print f"  First > 7: {first-big}"]
 
 quack [let over-hundred be [x] -> x > 100]
 quack [let not-found be find(numbers, over-hundred)]
-quack [print "  First > 100: {not-found}"]
+quack [print f"  First > 100: {not-found}"]
 quack [print ""]
 
 -- ANY: Check if any element matches
 quack [print "ANY - Check if any element matches:"]
 quack [let has-even be any(numbers, is-even)]
-quack [print "  Has any even? {has-even}"]
+quack [print f"  Has any even? {has-even}"]
 
 quack [let has-huge be any(numbers, over-hundred)]
-quack [print "  Has any > 100? {has-huge}"]
+quack [print f"  Has any > 100? {has-huge}"]
 quack [print ""]
 
 -- ALL: Check if all elements match
 quack [print "ALL - Check if all elements match:"]
 quack [let is-positive be [x] -> x > 0]
 quack [let all-positive be all(numbers, is-positive)]
-quack [print "  All positive? {all-positive}"]
+quack [print f"  All positive? {all-positive}"]
 
 quack [let under-five be [x] -> x < 5]
 quack [let all-small be all(numbers, under-five)]
-quack [print "  All < 5? {all-small}"]
+quack [print f"  All < 5? {all-small}"]
 quack [print ""]
 
 -- Chaining operations
@@ -103,7 +103,7 @@ quack [let step1 be map(numbers, double)]
 quack [let over-ten be [x] -> x > 10]
 quack [let step2 be filter(step1, over-ten)]
 quack [let chained-result be fold(step2, 0, add)]
-quack [print "  Sum of doubled numbers > 10: {chained-result}"]
+quack [print f"  Sum of doubled numbers > 10: {chained-result}"]
 quack [print ""]
 
 -- ============================================
@@ -117,7 +117,7 @@ quack [print ""]
 quack [print "Handling missing file:"]
 quack [attempt
   quack [let content be read-file("this-file-does-not-exist.txt")]
-  quack [print "  File content: {content}"]
+  quack [print f"  File content: {content}"]
 rescue err
   quack [print "  Caught error! File not found (expected)"]
 ]
@@ -136,10 +136,10 @@ quack [define safe-divide taking [a, b] as
 ]
 
 quack [let r1 be safe-divide(10, 2)]
-quack [print "  10 / 2 = {r1}"]
+quack [print f"  10 / 2 = {r1}"]
 
 quack [let r2 be safe-divide(10, 0)]
-quack [print "  10 / 0 = {r2} (handled safely)"]
+quack [print f"  10 / 0 = {r2} (handled safely)"]
 quack [print ""]
 
 -- Nested error handling
@@ -154,7 +154,7 @@ quack [attempt
   ]
   quack [print "  Outer block continues after inner rescue"]
 rescue outer-err
-  quack [print "  Outer rescue: {outer-err}"]
+  quack [print f"  Outer rescue: {outer-err}"]
 ]
 quack [print ""]
 
@@ -166,7 +166,7 @@ quack [print "--- Practical Example: Grade Analysis ---"]
 quack [print ""]
 
 quack [let scores be list(85, 92, 78, 95, 88, 72, 90, 83, 97, 80)]
-quack [print "Student scores: {scores}"]
+quack [print f"Student scores: {scores}"]
 quack [print ""]
 
 -- Calculate average
@@ -174,9 +174,9 @@ quack [let total be fold(scores, 0, add)]
 quack [let count be len(scores)]
 quack [let average be total / count]
 quack [print "Statistics:"]
-quack [print "  Total: {total}"]
-quack [print "  Count: {count}"]
-quack [print "  Average: {average}"]
+quack [print f"  Total: {total}"]
+quack [print f"  Count: {count}"]
+quack [print f"  Average: {average}"]
 quack [print ""]
 
 -- Grade distribution
@@ -189,9 +189,9 @@ quack [let b-grades be filter(scores, is-b)]
 quack [let c-grades be filter(scores, is-c)]
 
 quack [print "Grade distribution:"]
-quack [print "  A grades (90+): {len(a-grades)} students - {a-grades}"]
-quack [print "  B grades (80-89): {len(b-grades)} students - {b-grades}"]
-quack [print "  C grades (70-79): {len(c-grades)} students - {c-grades}"]
+quack [print f"  A grades (90+): {len(a-grades)} students - {a-grades}"]
+quack [print f"  B grades (80-89): {len(b-grades)} students - {b-grades}"]
+quack [print f"  C grades (70-79): {len(c-grades)} students - {c-grades}"]
 quack [print ""]
 
 -- Quick checks
@@ -202,9 +202,9 @@ quack [let has-perfect be any(scores, perfect)]
 quack [let highest be find(scores, is-a)]
 
 quack [print "Quick checks:"]
-quack [print "  Everyone passed (>=70)? {everyone-passed}"]
-quack [print "  Anyone got 100? {has-perfect}"]
-quack [print "  First A grade: {highest}"]
+quack [print f"  Everyone passed (>=70)? {everyone-passed}"]
+quack [print f"  Anyone got 100? {has-perfect}"]
+quack [print f"  First A grade: {highest}"]
 quack [print ""]
 
 quack [print "========================================"]

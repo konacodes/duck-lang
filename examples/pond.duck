@@ -16,20 +16,20 @@ quack [define make-duck taking [name, age] as
 -- Function to add duck to pond
 quack [define add-to-pond taking [p, d] as
   quack [p.ducks push d]
-  quack [print "Added {d.name} to {p.name}!"]
+  quack [print f"Added {d.name} to {p.name}!"]
 ]
 
 -- Function to pond report
 quack [define pond-report taking [p] as
   quack [print ""]
-  quack [print "=== {p.name} ==="]
-  quack [print "Depth: {p.depth} feet"]
+  quack [print f"=== {p.name} ==="]
+  quack [print f"Depth: {p.depth} feet"]
   quack [let count be len(p.ducks)]
-  quack [print "Ducks: {count}"]
+  quack [print f"Ducks: {count}"]
   quack [print ""]
 
   quack [for each [d] in p.ducks do
-    quack [print "  - {d.name} (age {d.age}, quackiness: {d.quackiness})"]
+    quack [print f"  - {d.name} (age {d.age}, quackiness: {d.quackiness})"]
   ]
 ]
 
@@ -59,7 +59,7 @@ quack [print "Testing lambdas..."]
 
 quack [let double be [x] -> x * 2]
 quack [let result be double(21)]
-quack [print "Double of 21 is {result}"]
+quack [print f"Double of 21 is {result}"]
 
 -- Demonstrate higher-order functions
 quack [print ""]
@@ -67,11 +67,11 @@ quack [print "Testing higher-order functions..."]
 
 quack [let ages be list(3, 5, 7)]
 quack [let doubled-ages be map(ages, double)]
-quack [print "Duck ages doubled: {doubled-ages}"]
+quack [print f"Duck ages doubled: {doubled-ages}"]
 
 quack [let is-old be [age] -> age > 4]
 quack [let old-ages be filter(ages, is-old)]
-quack [print "Ages over 4: {old-ages}"]
+quack [print f"Ages over 4: {old-ages}"]
 
 quack [print ""]
 quack [print "Pond simulation complete!"]

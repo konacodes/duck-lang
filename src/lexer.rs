@@ -65,6 +65,7 @@ pub enum TokenKind {
     Honk,
     Attempt,
     Rescue,
+    Migrate,
 
     // Boolean and null literals
     True,
@@ -293,8 +294,54 @@ impl Lexer {
         Ok(())
     }
 
-    /// Scan a string literal, handling escape sequences and interpolation
+    /// Scan a regular string literal (no interpolation - braces are literal)
     fn string(&mut self) -> Result<(), String> {
+        let start_line = self.line;
+        let mut value = String::new();
+
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+                self.column = 1;
+            }
+
+            if self.peek() == '\\' {
+                // Handle escape sequences
+                self.advance(); // consume backslash
+                if self.is_at_end() {
+                    return Err(format!("Unterminated string starting at line {}", start_line));
+                }
+                let escaped = self.advance();
+                match escaped {
+                    '"' => value.push('"'),
+                    '\\' => value.push('\\'),
+                    'n' => value.push('\n'),
+                    't' => value.push('\t'),
+                    _ => {
+                        return Err(format!(
+                            "Invalid escape sequence '\\{}' at line {}",
+                            escaped, self.line
+                        ));
+                    }
+                }
+            } else {
+                // Regular character (including { and } which are literal in regular strings)
+                value.push(self.advance());
+            }
+        }
+
+        if self.is_at_end() {
+            return Err(format!("Unterminated string starting at line {}", start_line));
+        }
+
+        self.advance(); // consume closing '"'
+        self.add_token_with_lexeme(TokenKind::StringLiteral, value);
+
+        Ok(())
+    }
+
+    /// Scan an f-string literal with interpolation: f"Hello {name}!"
+    fn fstring(&mut self) -> Result<(), String> {
         let start_line = self.line;
         let mut value = String::new();
         let mut has_interpolation = false;
@@ -310,7 +357,7 @@ impl Lexer {
                 // Handle escape sequences
                 self.advance(); // consume backslash
                 if self.is_at_end() {
-                    return Err(format!("Unterminated string starting at line {}", start_line));
+                    return Err(format!("Unterminated f-string starting at line {}", start_line));
                 }
                 let escaped = self.advance();
                 match escaped {
@@ -353,7 +400,7 @@ impl Lexer {
         }
 
         if self.is_at_end() {
-            return Err(format!("Unterminated string starting at line {}", start_line));
+            return Err(format!("Unterminated f-string starting at line {}", start_line));
         }
 
         self.advance(); // consume closing '"'
@@ -362,7 +409,7 @@ impl Lexer {
             // This is the end part of an interpolated string
             self.add_token_with_lexeme(TokenKind::StringEnd, value);
         } else {
-            // Simple string literal without interpolation
+            // F-string without interpolation is just a regular string
             self.add_token_with_lexeme(TokenKind::StringLiteral, value);
         }
 
@@ -434,6 +481,14 @@ impl Lexer {
 
     /// Scan an identifier or keyword
     fn identifier(&mut self) {
+        // Check for f-string: f"..."
+        let first_char = self.source.get(self.start).copied().unwrap_or(' ');
+        if first_char == 'f' && self.current == self.start + 1 && self.peek() == '"' {
+            self.advance(); // consume the opening quote
+            self.fstring().ok(); // process as f-string (interpolated)
+            return;
+        }
+
         // Identifiers can contain letters, digits, underscores, and hyphens
         // but must start with a letter (already consumed) or underscore
         while !self.is_at_end() {
@@ -499,6 +554,7 @@ impl Lexer {
             "honk" => TokenKind::Honk,
             "attempt" => TokenKind::Attempt,
             "rescue" => TokenKind::Rescue,
+            "migrate" => TokenKind::Migrate,
             "true" => TokenKind::True,
             "false" => TokenKind::False,
             "nil" => TokenKind::Nil,
@@ -590,7 +646,8 @@ mod tests {
 
     #[test]
     fn test_string_interpolation() {
-        let tokens = lex(r#""hello {name}!""#).unwrap();
+        // F-strings use f"..." prefix for interpolation
+        let tokens = lex(r#"f"hello {name}!""#).unwrap();
         assert_eq!(tokens[0].kind, TokenKind::StringStart);
         assert_eq!(tokens[0].lexeme, "hello ");
         assert_eq!(tokens[1].kind, TokenKind::InterpolationStart);
@@ -599,6 +656,14 @@ mod tests {
         assert_eq!(tokens[3].kind, TokenKind::InterpolationEnd);
         assert_eq!(tokens[4].kind, TokenKind::StringEnd);
         assert_eq!(tokens[4].lexeme, "!");
+    }
+
+    #[test]
+    fn test_regular_string_no_interpolation() {
+        // Regular strings treat braces as literal characters
+        let tokens = lex(r#""{\"key\": \"value\"}""#).unwrap();
+        assert_eq!(tokens[0].kind, TokenKind::StringLiteral);
+        assert_eq!(tokens[0].lexeme, "{\"key\": \"value\"}");
     }
 
     #[test]
@@ -740,7 +805,8 @@ mod tests {
 
     #[test]
     fn test_multiple_interpolations() {
-        let tokens = lex(r#""Hello {first} {last}!""#).unwrap();
+        // F-strings support multiple interpolations
+        let tokens = lex(r#"f"Hello {first} {last}!""#).unwrap();
         // "Hello " + {first} + " " + {last} + "!"
         assert_eq!(tokens[0].kind, TokenKind::StringStart);
         assert_eq!(tokens[0].lexeme, "Hello ");
