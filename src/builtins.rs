@@ -1,11 +1,12 @@
 // Built-in functions for Duck language
 
 use crate::values::Value;
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, Component};
 
 /// Check if a function name is a built-in function
 pub fn is_builtin(name: &str) -> bool {
@@ -52,6 +53,17 @@ pub fn is_builtin(name: &str) -> bool {
             | "find"
             | "any"
             | "all"
+            // Environment and system
+            | "env"
+            // JSON support
+            | "json-parse"
+            | "json-stringify"
+            // HTTP client
+            | "http-get"
+            | "http-post"
+            // Base64 encoding
+            | "base64-encode"
+            | "base64-decode"
     )
 }
 
@@ -92,6 +104,17 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, String> {
         "write-file" => builtin_write_file(args),
         "append-file" => builtin_append_file(args),
         "file-exists" => builtin_file_exists(args),
+        // Environment and system
+        "env" => builtin_env(args),
+        // JSON support
+        "json-parse" => builtin_json_parse(args),
+        "json-stringify" => builtin_json_stringify(args),
+        // HTTP client
+        "http-get" => builtin_http_get(args),
+        "http-post" => builtin_http_post(args),
+        // Base64 encoding
+        "base64-encode" => builtin_base64_encode(args),
+        "base64-decode" => builtin_base64_decode(args),
         _ => Err(format!("Unknown builtin: {}", name)),
     }
 }
@@ -585,13 +608,34 @@ fn builtin_values(args: Vec<Value>) -> Result<Value, String> {
 }
 
 // =============================================================================
-// Phase 2: File I/O
+// Phase 2: File I/O (with security validation)
 // =============================================================================
+
+/// Validate a file path for security
+/// Prevents directory traversal attacks
+fn validate_path(path: &str) -> Result<(), String> {
+    let path = Path::new(path);
+
+    // Prevent directory traversal
+    for component in path.components() {
+        if component == Component::ParentDir {
+            return Err("Path traversal (..) not allowed - the goose is suspicious".to_string());
+        }
+    }
+
+    // Prevent absolute paths (sandbox to current directory and below)
+    if path.is_absolute() {
+        return Err("Absolute paths not allowed - the goose prefers relative paths".to_string());
+    }
+
+    Ok(())
+}
 
 /// Read entire file contents as a string
 fn builtin_read_file(args: Vec<Value>) -> Result<Value, String> {
     match args.first() {
         Some(Value::String(path)) => {
+            validate_path(path)?;
             fs::read_to_string(path).map(Value::String).map_err(|e| {
                 if e.kind() == io::ErrorKind::NotFound {
                     format!("The goose searched everywhere but couldn't find '{}'", path)
@@ -618,6 +662,7 @@ fn builtin_write_file(args: Vec<Value>) -> Result<Value, String> {
 
     match (&args[0], &args[1]) {
         (Value::String(path), Value::String(content)) => {
+            validate_path(path)?;
             fs::write(path, content).map(|_| Value::Null).map_err(|e| {
                 if e.kind() == io::ErrorKind::PermissionDenied {
                     format!("The goose is not allowed to write to '{}'", path)
@@ -645,6 +690,7 @@ fn builtin_append_file(args: Vec<Value>) -> Result<Value, String> {
 
     match (&args[0], &args[1]) {
         (Value::String(path), Value::String(content)) => {
+            validate_path(path)?;
             use std::fs::OpenOptions;
             let file = OpenOptions::new()
                 .create(true)
@@ -687,6 +733,278 @@ fn builtin_file_exists(args: Vec<Value>) -> Result<Value, String> {
             other.type_name()
         )),
         None => Err("file-exists() requires 1 argument".to_string()),
+    }
+}
+
+// =============================================================================
+// Environment Variables
+// =============================================================================
+
+/// Get an environment variable value
+fn builtin_env(args: Vec<Value>) -> Result<Value, String> {
+    match args.first() {
+        Some(Value::String(key)) => {
+            // Security: Don't expose sensitive variable names in errors
+            match std::env::var(key) {
+                Ok(val) => Ok(Value::String(val)),
+                Err(_) => Ok(Value::Null),
+            }
+        }
+        Some(other) => Err(format!("env() expects a string, got {}", other.type_name())),
+        None => Err("env() requires 1 argument".to_string()),
+    }
+}
+
+// =============================================================================
+// JSON Support
+// =============================================================================
+
+/// Convert a serde_json::Value to a Duck Value
+fn json_to_value(json: serde_json::Value) -> Result<Value, String> {
+    match json {
+        serde_json::Value::Null => Ok(Value::Null),
+        serde_json::Value::Bool(b) => Ok(Value::Boolean(b)),
+        serde_json::Value::Number(n) => {
+            Ok(Value::Number(n.as_f64().unwrap_or(0.0)))
+        }
+        serde_json::Value::String(s) => Ok(Value::String(s)),
+        serde_json::Value::Array(arr) => {
+            let items: Result<Vec<_>, _> = arr.into_iter().map(json_to_value).collect();
+            Ok(Value::new_list(items?))
+        }
+        serde_json::Value::Object(obj) => {
+            let mut fields = HashMap::new();
+            for (k, v) in obj {
+                fields.insert(k, json_to_value(v)?);
+            }
+            Ok(Value::new_struct("object".to_string(), fields))
+        }
+    }
+}
+
+/// Convert a Duck Value to serde_json::Value
+fn value_to_json(value: &Value) -> Result<serde_json::Value, String> {
+    match value {
+        Value::Null => Ok(serde_json::Value::Null),
+        Value::Boolean(b) => Ok(serde_json::Value::Bool(*b)),
+        Value::Number(n) => {
+            serde_json::Number::from_f64(*n)
+                .map(serde_json::Value::Number)
+                .ok_or_else(|| "Cannot convert number to JSON".to_string())
+        }
+        Value::String(s) => Ok(serde_json::Value::String(s.clone())),
+        Value::List(items) => {
+            let arr: Result<Vec<_>, _> = items.borrow().iter().map(value_to_json).collect();
+            Ok(serde_json::Value::Array(arr?))
+        }
+        Value::Struct { fields, .. } => {
+            let mut obj = serde_json::Map::new();
+            for (k, v) in fields.borrow().iter() {
+                obj.insert(k.clone(), value_to_json(v)?);
+            }
+            Ok(serde_json::Value::Object(obj))
+        }
+        other => Err(format!("Cannot convert {} to JSON", other.type_name())),
+    }
+}
+
+/// Parse a JSON string into a Duck value
+fn builtin_json_parse(args: Vec<Value>) -> Result<Value, String> {
+    match args.first() {
+        Some(Value::String(s)) => {
+            let parsed: serde_json::Value = serde_json::from_str(s)
+                .map_err(|e| format!("JSON parse error: {}", e))?;
+            json_to_value(parsed)
+        }
+        Some(other) => Err(format!("json-parse() expects a string, got {}", other.type_name())),
+        None => Err("json-parse() requires 1 argument".to_string()),
+    }
+}
+
+/// Convert a Duck value to a JSON string
+fn builtin_json_stringify(args: Vec<Value>) -> Result<Value, String> {
+    match args.first() {
+        Some(value) => {
+            let json = value_to_json(value)?;
+            let s = serde_json::to_string(&json)
+                .map_err(|e| format!("JSON stringify error: {}", e))?;
+            Ok(Value::String(s))
+        }
+        None => Err("json-stringify() requires 1 argument".to_string()),
+    }
+}
+
+// =============================================================================
+// HTTP Client
+// =============================================================================
+
+/// Parse headers from a list of key-value pairs
+fn parse_headers(header_list: &Value) -> Result<Vec<(String, String)>, String> {
+    match header_list {
+        Value::List(items) => {
+            let borrowed = items.borrow();
+            let mut headers = Vec::new();
+            let mut iter = borrowed.iter();
+
+            while let Some(key) = iter.next() {
+                match key {
+                    Value::String(k) => {
+                        if let Some(val) = iter.next() {
+                            match val {
+                                Value::String(v) => headers.push((k.clone(), v.clone())),
+                                other => return Err(format!(
+                                    "Header value must be string, got {}",
+                                    other.type_name()
+                                )),
+                            }
+                        } else {
+                            return Err("Headers list must have even number of elements (key, value pairs)".to_string());
+                        }
+                    }
+                    other => return Err(format!(
+                        "Header key must be string, got {}",
+                        other.type_name()
+                    )),
+                }
+            }
+            Ok(headers)
+        }
+        _ => Err("Headers must be a list".to_string()),
+    }
+}
+
+/// Build HTTP response struct
+fn build_http_response(status: u16, body: String, headers: Vec<(String, String)>) -> Value {
+    let mut fields = HashMap::new();
+    fields.insert("status".to_string(), Value::Number(status as f64));
+    fields.insert("body".to_string(), Value::String(body));
+
+    // Convert headers to list of key-value pairs
+    let header_values: Vec<Value> = headers
+        .into_iter()
+        .flat_map(|(k, v)| vec![Value::String(k), Value::String(v)])
+        .collect();
+    fields.insert("headers".to_string(), Value::new_list(header_values));
+
+    Value::new_struct("response".to_string(), fields)
+}
+
+/// HTTP GET request
+fn builtin_http_get(args: Vec<Value>) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("http-get() requires at least 1 argument (url)".to_string());
+    }
+
+    let url = match &args[0] {
+        Value::String(u) => u.clone(),
+        other => return Err(format!("http-get() expects a URL string, got {}", other.type_name())),
+    };
+
+    // Optional headers
+    let headers = if args.len() > 1 {
+        parse_headers(&args[1])?
+    } else {
+        Vec::new()
+    };
+
+    let client = reqwest::blocking::Client::new();
+    let mut request = client.get(&url);
+
+    for (key, value) in &headers {
+        request = request.header(key.as_str(), value.as_str());
+    }
+
+    let response = request
+        .send()
+        .map_err(|e| format!("HTTP GET error: {}", e))?;
+
+    let status = response.status().as_u16();
+    let resp_headers: Vec<(String, String)> = response
+        .headers()
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+        .collect();
+    let body = response.text().map_err(|e| format!("Failed to read response: {}", e))?;
+
+    Ok(build_http_response(status, body, resp_headers))
+}
+
+/// HTTP POST request
+fn builtin_http_post(args: Vec<Value>) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("http-post() requires at least 2 arguments (url, body)".to_string());
+    }
+
+    let url = match &args[0] {
+        Value::String(u) => u.clone(),
+        other => return Err(format!("http-post() expects a URL string, got {}", other.type_name())),
+    };
+
+    let body = match &args[1] {
+        Value::String(b) => b.clone(),
+        other => return Err(format!("http-post() expects a body string, got {}", other.type_name())),
+    };
+
+    // Optional headers
+    let headers = if args.len() > 2 {
+        parse_headers(&args[2])?
+    } else {
+        Vec::new()
+    };
+
+    let client = reqwest::blocking::Client::new();
+    let mut request = client.post(&url).body(body);
+
+    for (key, value) in &headers {
+        request = request.header(key.as_str(), value.as_str());
+    }
+
+    let response = request
+        .send()
+        .map_err(|e| format!("HTTP POST error: {}", e))?;
+
+    let status = response.status().as_u16();
+    let resp_headers: Vec<(String, String)> = response
+        .headers()
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+        .collect();
+    let resp_body = response.text().map_err(|e| format!("Failed to read response: {}", e))?;
+
+    Ok(build_http_response(status, resp_body, resp_headers))
+}
+
+// =============================================================================
+// Base64 Encoding
+// =============================================================================
+
+/// Encode a string to base64
+fn builtin_base64_encode(args: Vec<Value>) -> Result<Value, String> {
+    use base64::Engine;
+    match args.first() {
+        Some(Value::String(s)) => {
+            let encoded = base64::engine::general_purpose::STANDARD.encode(s.as_bytes());
+            Ok(Value::String(encoded))
+        }
+        Some(other) => Err(format!("base64-encode() expects a string, got {}", other.type_name())),
+        None => Err("base64-encode() requires 1 argument".to_string()),
+    }
+}
+
+/// Decode a base64 string
+fn builtin_base64_decode(args: Vec<Value>) -> Result<Value, String> {
+    use base64::Engine;
+    match args.first() {
+        Some(Value::String(s)) => {
+            let decoded = base64::engine::general_purpose::STANDARD
+                .decode(s)
+                .map_err(|e| format!("Base64 decode error: {}", e))?;
+            let text = String::from_utf8(decoded)
+                .map_err(|e| format!("Invalid UTF-8 after decode: {}", e))?;
+            Ok(Value::String(text))
+        }
+        Some(other) => Err(format!("base64-decode() expects a string, got {}", other.type_name())),
+        None => Err("base64-decode() requires 1 argument".to_string()),
     }
 }
 

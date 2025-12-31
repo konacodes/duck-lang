@@ -84,12 +84,19 @@ impl Default for Environment {
     }
 }
 
+/// Default instruction limit (10 million instructions)
+const DEFAULT_INSTRUCTION_LIMIT: usize = 10_000_000;
+
 /// The interpreter
 pub struct Interpreter {
     /// Global environment
     env: Rc<RefCell<Environment>>,
     /// Execution statistics
     pub stats: ExecutionStats,
+    /// Instruction counter for infinite loop protection
+    instruction_count: usize,
+    /// Maximum instructions allowed (None = unlimited)
+    max_instructions: Option<usize>,
 }
 
 impl Interpreter {
@@ -114,7 +121,28 @@ impl Interpreter {
         Interpreter {
             env,
             stats: ExecutionStats::default(),
+            instruction_count: 0,
+            max_instructions: Some(DEFAULT_INSTRUCTION_LIMIT),
         }
+    }
+
+    /// Set the maximum instruction limit (None for unlimited)
+    pub fn set_instruction_limit(&mut self, limit: Option<usize>) {
+        self.max_instructions = limit;
+    }
+
+    /// Check and increment instruction counter
+    fn check_instruction_limit(&mut self) -> Result<(), String> {
+        self.instruction_count += 1;
+        if let Some(max) = self.max_instructions {
+            if self.instruction_count > max {
+                return Err(format!(
+                    "Execution limit exceeded ({} instructions) - the goose suspects an infinite loop",
+                    max
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// Run a complete program (list of blocks)
@@ -175,6 +203,9 @@ impl Interpreter {
 
     /// Execute a statement
     fn execute_statement(&mut self, stmt: &Statement, line: usize) -> Result<ControlFlow, String> {
+        // Check instruction limit for infinite loop protection
+        self.check_instruction_limit()?;
+
         match stmt {
             Statement::Let { name, value } => {
                 let val = self.evaluate(value, line)?;
