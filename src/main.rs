@@ -343,9 +343,9 @@ fn update_goose(target_version: Option<String>) {
 
     // Build download URL
     let filename = if os == "windows" {
-        format!("goose-{}-{}-{}.exe", version, os, arch)
+        format!("goose-{}-{}.exe", os, arch)
     } else {
-        format!("goose-{}-{}-{}", version, os, arch)
+        format!("goose-{}-{}", os, arch)
     };
     let url = format!(
         "https://github.com/{}/releases/download/{}/{}",

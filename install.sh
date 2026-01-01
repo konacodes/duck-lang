@@ -157,7 +157,7 @@ get_download_url() {
     local os=$2
     local arch=$3
 
-    local filename="goose-${version}-${os}-${arch}"
+    local filename="goose-${os}-${arch}"
     if [ "$os" = "windows" ]; then
         filename="${filename}.exe"
     fi
