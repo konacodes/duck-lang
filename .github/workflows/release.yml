@@ -23,7 +23,7 @@ jobs:
             asset_name: goose-linux-x86_64
 
           # macOS x86_64
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             artifact_name: goose
             asset_name: goose-macos-x86_64
