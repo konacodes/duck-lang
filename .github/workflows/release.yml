@@ -1,0 +1,141 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: goose
+            asset_name: goose-${{ github.ref_name }}-linux-x86_64
+
+          # Linux aarch64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: goose
+            asset_name: goose-${{ github.ref_name }}-linux-aarch64
+
+          # macOS x86_64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: goose
+            asset_name: goose-${{ github.ref_name }}-macos-x86_64
+
+          # macOS aarch64 (Apple Silicon)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: goose
+            asset_name: goose-${{ github.ref_name }}-macos-aarch64
+
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: goose.exe
+            asset_name: goose-${{ github.ref_name }}-windows-x86_64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools (Linux aarch64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          for dir in artifacts/*/; do
+            cp "$dir"* release/ 2>/dev/null || true
+          done
+          ls -la release/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ github.ref_name }}"
+          echo "## What's New in ${VERSION}" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Installation" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo 'curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash' >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "Or download the binary for your platform below." >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Platforms" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "| Platform | Architecture | Binary |" >> CHANGELOG.md
+          echo "|----------|--------------|--------|" >> CHANGELOG.md
+          echo "| Linux | x86_64 | \`goose-${VERSION}-linux-x86_64\` |" >> CHANGELOG.md
+          echo "| Linux | aarch64 | \`goose-${VERSION}-linux-aarch64\` |" >> CHANGELOG.md
+          echo "| macOS | x86_64 | \`goose-${VERSION}-macos-x86_64\` |" >> CHANGELOG.md
+          echo "| macOS | aarch64 (Apple Silicon) | \`goose-${VERSION}-macos-aarch64\` |" >> CHANGELOG.md
+          echo "| Windows | x86_64 | \`goose-${VERSION}-windows-x86_64.exe\` |" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "*Honk.* The goose permits this release." >> CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Goose ${{ github.ref_name }}"
+          body_path: CHANGELOG.md
+          files: release/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

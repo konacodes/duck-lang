@@ -1,0 +1,359 @@
+-- The Pond: A Duck Adventure
+-- A text adventure game written in Duck
+--
+-- Run with: goose run projects/pond/game.duck
+
+-- ============================================
+-- DISPLAY UTILITIES
+-- ============================================
+
+quack [define clear taking [x] as
+  quack [repeat 30 times
+    quack [print ""]
+  ]
+]
+
+quack [define hr taking [x] as
+  quack [print "--------------------------------------------"]
+]
+
+quack [define hr2 taking [x] as
+  quack [print "============================================"]
+]
+
+quack [define banner taking [text] as
+  quack [print ""]
+  quack [hr 0]
+  quack [print f"          {text}"]
+  quack [hr 0]
+  quack [print ""]
+]
+
+quack [define title-art taking [x] as
+  quack [print ""]
+  quack [print "            .---."]
+  quack [print "           /     \\"]
+  quack [print "           \\.@-@./"]
+  quack [print "           /`\\_/`\\"]
+  quack [print "          //  _  \\\\"]
+  quack [print "         | \\     )|_"]
+  quack [print "        /`\\_`>  <_/ \\"]
+  quack [print "        \\__/'---'\\__/"]
+  quack [print ""]
+]
+
+quack [define goose-art taking [x] as
+  quack [print ""]
+  quack [print "                   ___"]
+  quack [print "                .-'   `'."]
+  quack [print "               /  .-.-.  \\"]
+  quack [print "              /   | | |   \\"]
+  quack [print "              |   '-.-'    |"]
+  quack [print "              |            |"]
+  quack [print "               \\          /"]
+  quack [print "                '.______.'"]
+  quack [print "                    ||"]
+  quack [print "                   _||_"]
+  quack [print "                  `----`"]
+  quack [print ""]
+]
+
+quack [define victory-art taking [x] as
+  quack [print ""]
+  quack [print "   *  *  *  VICTORY  *  *  *"]
+  quack [print ""]
+  quack [print "      .---.    .---."]
+  quack [print "     /     \\  /     \\"]
+  quack [print "     \\.@-@./  \\.@-@./"]
+  quack [print "     /`\\_/`\\  /`\\_/`\\"]
+  quack [print "    //  _  \\\\//  _  \\\\"]
+  quack [print ""]
+]
+
+quack [define do-pause taking [x] as
+  quack [print ""]
+  quack [print "[Press ENTER to continue...]"]
+  quack [let dummy be input("")]
+]
+
+-- ============================================
+-- GAME DATA
+-- ============================================
+
+-- Room data stored as parallel lists
+quack [let room-names be list(
+  "The Pond",
+  "The Meadow",
+  "The Dark Woods",
+  "Grassy Hill",
+  "Deep Woods",
+  "The Clearing"
+)]
+
+quack [let room-descs be list(
+  "A peaceful pond surrounded by reeds. The water reflects the sky.",
+  "A wide grassy meadow with wildflowers. A gentle breeze blows.",
+  "Tall trees block most sunlight. Ancient oaks line the path.",
+  "From atop this hill you see the whole area. Something glints nearby.",
+  "The trees are thick here. Strange sounds echo in the distance.",
+  "A circular clearing. THE GOOSE stands here, staring at you."
+)]
+
+-- Exits: north, south, east, west for each room (-1 = no exit)
+quack [let exits-n be list(1, -1, -1, -1, 5, -1)]
+quack [let exits-s be list(-1, 0, -1, -1, -1, 4)]
+quack [let exits-e be list(2, -1, 4, -1, -1, -1)]
+quack [let exits-w be list(-1, 3, 0, 1, 2, -1)]
+
+-- Items: room number where each item is, -1 = in inventory
+quack [let item-names be list("breadcrumbs", "feather", "shiny-key", "scroll")]
+quack [let item-descs be list(
+  "Delicious breadcrumbs. Ducks love these!",
+  "A pristine white feather that shimmers.",
+  "A golden key with a duck engraved on it.",
+  "An ancient scroll. It reads: Bring gifts to appease the Goose."
+)]
+quack [let item-locs be list(1, 2, 3, 4)]
+
+-- Game state
+quack [let current-room be 0]
+quack [let game-over be false]
+quack [let turns be 0]
+
+-- ============================================
+-- GAME FUNCTIONS
+-- ============================================
+
+quack [define show-title taking [x] as
+  quack [clear 0]
+  quack [title-art 0]
+  quack [banner "THE POND"]
+  quack [print "  A Duck Adventure"]
+  quack [print ""]
+  quack [print "  You are a duck. A simple duck with simple dreams."]
+  quack [print "  But today, something feels different."]
+  quack [print ""]
+  quack [print "  They say a GOOSE lives in these woods."]
+  quack [print "  They say the GOOSE... judges."]
+  quack [print ""]
+  quack [hr 0]
+  quack [print "  Commands: n/s/e/w, look, take, inv, help, quit"]
+  quack [hr 0]
+  quack [do-pause 0]
+]
+
+quack [define show-room taking [x] as
+  quack [print ""]
+  quack [hr 0]
+  quack [print f"  {room-names at current-room}"]
+  quack [hr 0]
+  quack [print ""]
+  quack [print (room-descs at current-room)]
+  quack [print ""]
+
+  -- Show items here
+  quack [let i be 0]
+  quack [while i < len(item-names) do
+    quack [if (item-locs at i) == current-room then
+      quack [print f"You see: {item-names at i}"]
+    ]
+    quack [i becomes i + 1]
+  ]
+
+  -- Show exits
+  quack [let exit-str be "Exits:"]
+  quack [if (exits-n at current-room) >= 0 then
+    quack [exit-str becomes exit-str + " north"]
+  ]
+  quack [if (exits-s at current-room) >= 0 then
+    quack [exit-str becomes exit-str + " south"]
+  ]
+  quack [if (exits-e at current-room) >= 0 then
+    quack [exit-str becomes exit-str + " east"]
+  ]
+  quack [if (exits-w at current-room) >= 0 then
+    quack [exit-str becomes exit-str + " west"]
+  ]
+  quack [print exit-str]
+]
+
+quack [define move-to taking [dest] as
+  quack [if dest == -1 then
+    quack [print "You can't go that way."]
+  otherwise
+    quack [current-room becomes dest]
+    quack [turns becomes turns + 1]
+    quack [if current-room == 5 then
+      quack [goose-encounter 0]
+    otherwise
+      quack [show-room 0]
+    ]
+  ]
+]
+
+quack [define take-item taking [name] as
+  quack [let found be false]
+  quack [let i be 0]
+  quack [while i < len(item-names) do
+    quack [if (item-names at i) == name then
+      quack [if (item-locs at i) == current-room then
+        quack [item-locs at i becomes -1]
+        quack [print f"You pick up the {name}."]
+        quack [print "  *happy duck noises*"]
+        quack [found becomes true]
+      ]
+    ]
+    quack [i becomes i + 1]
+  ]
+  quack [if found == false then
+    quack [print f"There is no {name} here."]
+  ]
+]
+
+quack [define show-inventory taking [x] as
+  quack [print ""]
+  quack [let has-any be false]
+  quack [let i be 0]
+  quack [while i < len(item-names) do
+    quack [if (item-locs at i) == -1 then
+      quack [if has-any == false then
+        quack [print "You are carrying:"]
+        quack [has-any becomes true]
+      ]
+      quack [print f"  - {item-names at i}"]
+    ]
+    quack [i becomes i + 1]
+  ]
+  quack [if has-any == false then
+    quack [print "Your inventory is empty."]
+  ]
+]
+
+quack [define has-all-items taking [x] as
+  quack [let has-bread be (item-locs at 0) == -1]
+  quack [let has-feather be (item-locs at 1) == -1]
+  quack [let has-key be (item-locs at 2) == -1]
+  quack [return has-bread and has-feather and has-key]
+]
+
+quack [define goose-encounter taking [x] as
+  quack [clear 0]
+  quack [goose-art 0]
+  quack [banner "THE GOOSE"]
+  quack [print "The Goose stands before you, magnificent and terrifying."]
+  quack [print "Its eyes bore into your very soul."]
+  quack [print ""]
+  quack [print "So, says the Goose. A duck dares enter my domain."]
+  quack [print ""]
+  quack [do-pause 0]
+
+  quack [let all-items be has-all-items(0)]
+  quack [if all-items then
+    quack [goose-victory 0]
+  otherwise
+    quack [goose-judgment 0]
+  ]
+]
+
+quack [define goose-victory taking [x] as
+  quack [print "The Goose examines you carefully."]
+  quack [print ""]
+  quack [print "You have brought me gifts, it observes."]
+  quack [print "Breadcrumbs. A feather. The key."]
+  quack [print ""]
+  quack [do-pause 0]
+  quack [print "The Goose nods slowly."]
+  quack [print ""]
+  quack [print "I rate your adventure... 10 out of 10."]
+  quack [print ""]
+  quack [print "This has never happened before."]
+  quack [print "You have impressed the Goose."]
+  quack [print ""]
+  quack [victory-art 0]
+  quack [print f"Completed in {turns} turns!"]
+  quack [game-over becomes true]
+]
+
+quack [define goose-judgment taking [x] as
+  quack [print "The Goose shakes its head."]
+  quack [print ""]
+  quack [print "You come to me... empty-winged?"]
+  quack [print "Explore. Find the gifts. Return."]
+  quack [print ""]
+  quack [print "Rating: 3/10"]
+  quack [print ""]
+  quack [current-room becomes 4]
+  quack [show-room 0]
+]
+
+quack [define show-help taking [x] as
+  quack [print ""]
+  quack [hr 0]
+  quack [print "  COMMANDS"]
+  quack [hr 0]
+  quack [print "  n, s, e, w - Move in a direction"]
+  quack [print "  look       - Look around"]
+  quack [print "  take X     - Pick up an item"]
+  quack [print "  inv        - Check your items"]
+  quack [print "  help       - Show this help"]
+  quack [print "  quit       - End the game"]
+  quack [hr 0]
+]
+
+quack [define do-command taking [cmd] as
+  quack [if cmd == "n" or cmd == "north" then
+    quack [move-to (exits-n at current-room)]
+  ]
+  quack [if cmd == "s" or cmd == "south" then
+    quack [move-to (exits-s at current-room)]
+  ]
+  quack [if cmd == "e" or cmd == "east" then
+    quack [move-to (exits-e at current-room)]
+  ]
+  quack [if cmd == "w" or cmd == "west" then
+    quack [move-to (exits-w at current-room)]
+  ]
+  quack [if cmd == "look" or cmd == "l" then
+    quack [show-room 0]
+  ]
+  quack [if cmd == "inv" or cmd == "i" or cmd == "inventory" then
+    quack [show-inventory 0]
+  ]
+  quack [if cmd == "help" or cmd == "h" then
+    quack [show-help 0]
+  ]
+  quack [if cmd == "quit" or cmd == "exit" then
+    quack [print ""]
+    quack [print "You waddle away from the adventure."]
+    quack [print "The Goose watches. It does not approve."]
+    quack [game-over becomes true]
+  ]
+  -- Check for take command
+  quack [let parts be split(cmd, " ")]
+  quack [if len(parts) >= 2 then
+    quack [let verb be parts at 0]
+    quack [if verb == "take" or verb == "get" or verb == "grab" then
+      quack [take-item (parts at 1)]
+    ]
+  ]
+]
+
+quack [define play taking [x] as
+  quack [show-title 0]
+  quack [show-room 0]
+
+  quack [while game-over == false do
+    quack [print ""]
+    quack [let cmd be input("> ")]
+    quack [if cmd != "" then
+      quack [do-command cmd]
+    ]
+  ]
+
+  quack [print ""]
+  quack [print "Thanks for playing THE POND!"]
+  quack [print ""]
+]
+
+-- Start the game!
+quack [play 0]

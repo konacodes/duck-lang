@@ -1,4 +1,4 @@
-# Duck 🦆
+# Duck
 
 A duck mass-emailed us demanding we build a programming language. We said no. Then the goose showed up.
 
@@ -9,8 +9,17 @@ We don't negotiate with waterfowl, but we do what they say.
 ## Install
 
 ```bash
-cargo build --release
-./target/release/goose run file.duck
+curl -fsSL https://raw.githubusercontent.com/konacodes/duck-lang/main/install.sh | bash
+```
+
+That's it. The goose is now on your system.
+
+```bash
+goose run hello.duck        # Run a file
+goose repl                  # Interactive mode
+goose update                # Get the latest goose
+goose rollback v0.1.0       # Downgrade (the goose disapproves)
+goose versions              # See what's available
 ```
 
 ## From the Goose
@@ -38,4 +47,4 @@ The goose wanted `.goose` but the duck mass-emailed us again.
 
 ---
 
-*Honk.* 🪿
+*Honk.*
