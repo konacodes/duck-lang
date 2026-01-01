@@ -1,3 +1,6 @@
 [submodule "projects/pond"]
 	path = projects/pond
 	url = https://github.com/konacodes/pond.git
+[submodule "projects/goose-oracle"]
+	path = projects/goose-oracle
+	url = https://github.com/konacodes/goose-oracle.git
