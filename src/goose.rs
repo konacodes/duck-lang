@@ -369,7 +369,7 @@ pub fn startup() -> String {
     let emojis = ["\u{1fabf}", ">o)", "~(o>", "\u{1f986}", "(o_O>"];
 
     let messages = [
-        "Goose interpreter v0.3.0 - Ready to honk",
+        "Goose interpreter v0.3.1 - Ready to honk",
         "Goose is awake. Don't forget to quack.",
         "*aggressive goose noises* Let's run some code.",
         "Goose online. Quacks will be monitored.",
