@@ -1,6 +1,6 @@
 [package]
 name = "duck-lang"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Duck is a programming language. Goose runs it. They're best friends (most of the time)."
 authors = ["Duck & Goose"]
