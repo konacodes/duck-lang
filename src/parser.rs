@@ -550,12 +550,22 @@ impl Parser {
                     value,
                 })
             } else {
-                // Field access as expression
-                let expr = Expr::FieldAccess {
+                // Field access - might be method call with arguments
+                let field_expr = Expr::FieldAccess {
                     object: Box::new(Expr::Identifier(name)),
                     field,
                 };
-                Ok(Statement::Expression(expr))
+
+                // Check for method call arguments
+                let args = self.parse_call_arguments()?;
+                if args.is_empty() {
+                    Ok(Statement::Expression(field_expr))
+                } else {
+                    Ok(Statement::Expression(Expr::Call {
+                        callee: Box::new(field_expr),
+                        arguments: args,
+                    }))
+                }
             }
         } else if self.check(TokenKind::Push) {
             // List push: [list push <value>]
