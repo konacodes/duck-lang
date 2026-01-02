@@ -84,6 +84,56 @@ quack [feathers my-complex-struct]
 -- Prints with indentation, colors, type annotations
 ```
 
+### Library: `konacodes/dice`
+
+Random utilities for games and decision-making.
+
+```duck
+quack [migrate "git+konacodes/dice" as dice]
+
+quack [print dice.roll(6)]           -- 1-6
+quack [print dice.roll(20)]          -- D&D d20
+quack [print dice.flip()]            -- "heads" or "tails"
+quack [print dice.pick(my-list)]     -- Random element
+quack [print dice.shuffle(my-list)]  -- Shuffled copy
+quack [print dice.chance(0.3)]       -- true 30% of the time
+```
+
+### Library: `konacodes/color`
+
+Terminal styling made easy.
+
+```duck
+quack [migrate "git+konacodes/color" as c]
+
+quack [print c.red("Error!")]
+quack [print c.bold(c.green("Success!"))]
+quack [print c.dim("subtle text")]
+quack [print c.rainbow("party time")]  -- Each letter different color
+```
+
+### Library: `konacodes/dotenv`
+
+Load environment from `.env` files.
+
+```duck
+quack [migrate "git+konacodes/dotenv"]
+quack [dotenv-load()]  -- Loads .env into environment
+
+quack [let token be env("DISCORD_TOKEN")]
+```
+
+### Library: `konacodes/uuid`
+
+Generate unique IDs.
+
+```duck
+quack [migrate "git+konacodes/uuid" as uuid]
+
+quack [print uuid.v4()]      -- "550e8400-e29b-41d4-a716-446655440000"
+quack [print uuid.short()]   -- "x7Hk9pQ" (URL-safe short ID)
+```
+
 ---
 
 ## A Little Work
@@ -195,6 +245,94 @@ quack [define process-file taking [path] as
 ]
 ```
 
+### Library: `konacodes/cli`
+
+Build beautiful command-line interfaces.
+
+```duck
+quack [migrate "git+konacodes/cli" as cli]
+
+quack [cli.spinner "Loading..." [done] ->
+  quack [do-slow-thing()]
+  quack [done()]
+]
+
+quack [let choice be cli.select("Pick one:" list("Option A", "Option B", "Option C"))]
+quack [let confirmed be cli.confirm("Are you sure?")]
+quack [cli.progress-bar 0 100 current-value]
+```
+
+### Library: `konacodes/csv`
+
+Parse and generate CSV files.
+
+```duck
+quack [migrate "git+konacodes/csv" as csv]
+
+quack [let data be csv.parse(read-file("data.csv"))]
+quack [for each [row] in data do
+  quack [print row.name]  -- Access by header name
+]
+
+quack [let output be csv.stringify(my-list-of-structs)]
+quack [let unused be write-file("output.csv", output)]
+```
+
+### Library: `konacodes/cron`
+
+Schedule recurring tasks.
+
+```duck
+quack [migrate "git+konacodes/cron" as cron]
+
+quack [cron.every "5 minutes" [] ->
+  quack [print "This runs every 5 minutes"]
+]
+
+quack [cron.daily "09:00" [] ->
+  quack [send-morning-report()]
+]
+
+quack [cron.start()]  -- Blocks and runs scheduler
+```
+
+### Library: `konacodes/validate`
+
+Data validation with helpful errors.
+
+```duck
+quack [migrate "git+konacodes/validate" as v]
+
+quack [let schema be v.object({
+  name: v.string().min(1).max(50),
+  email: v.string().email(),
+  age: v.number().min(0).max(150)
+})]
+
+quack [let result be v.check(schema, user-input)]
+quack [if result.valid then
+  quack [save-user(user-input)]
+otherwise
+  quack [print result.errors]
+]
+```
+
+### Library: `konacodes/cache`
+
+Simple in-memory caching with TTL.
+
+```duck
+quack [migrate "git+konacodes/cache" as cache]
+
+quack [cache.set "user:123" user-data 3600]  -- TTL in seconds
+quack [let user be cache.get "user:123"]
+
+quack [if user == nil then
+  quack [let user be fetch-from-db("123")]
+  quack [cache.set "user:123" user 3600]
+]
+```
+
 ---
 
 ## Big Features
@@ -242,12 +380,12 @@ quack [for each [row] in users do
 ]
 ```
 
-### Simple web server
+### Library: `konacodes/web`
 
-Serve HTTP without external libraries.
+Serve HTTP with a simple web framework.
 
 ```duck
-quack [migrate "std:web" as web]
+quack [migrate "git+konacodes/web" as web]
 
 quack [web.route "/" [req] ->
   quack [return web.html("<h1>Welcome to Duck!</h1>")]
@@ -255,6 +393,11 @@ quack [web.route "/" [req] ->
 
 quack [web.route "/api/quack" [req] ->
   quack [return web.json({message: "Quack!"})]
+]
+
+quack [web.route "/users/:id" [req] ->
+  quack [let user be get-user(req.params.id)]
+  quack [return web.json(user)]
 ]
 
 quack [web.listen 8080]
@@ -277,18 +420,123 @@ goose debug myfile.duck
 [debug] > continue
 ```
 
-### Standard library expansion
+### Library: `konacodes/telegram`
 
-Core libraries that ship with Duck:
+Telegram bot library (like the Discord one).
 
-- `std:web` - HTTP server
-- `std:db` - SQLite wrapper
-- `std:crypto` - Hashing, encryption
-- `std:time` - Date/time handling
-- `std:test` - Unit testing framework
-- `std:cli` - Argument parsing, colors, spinners
+```duck
+quack [migrate "git+konacodes/telegram" as tg]
 
-### `duck fmt`
+quack [let bot be tg.bot(env("TELEGRAM_TOKEN"))]
+
+quack [tg.on-message bot [msg] ->
+  quack [if msg.text == "/start" then
+    quack [tg.reply msg "Welcome! Quack!"]
+  ]
+]
+
+quack [tg.start-polling bot]
+```
+
+### Library: `konacodes/openai`
+
+Talk to AI APIs (OpenAI, Claude, etc).
+
+```duck
+quack [migrate "git+konacodes/openai" as ai]
+
+quack [let client be ai.client(env("OPENAI_API_KEY"))]
+
+quack [let response be ai.chat client list(
+  ai.system("You are a helpful duck."),
+  ai.user("What's the meaning of quack?")
+)]
+
+quack [print response.content]
+```
+
+### Library: `konacodes/websocket`
+
+WebSocket client for real-time connections.
+
+```duck
+quack [migrate "git+konacodes/websocket" as ws]
+
+quack [let socket be ws.connect("wss://example.com/socket")]
+
+quack [ws.on-message socket [msg] ->
+  quack [print f"Received: {msg}"]
+]
+
+quack [ws.on-close socket [] ->
+  quack [print "Connection closed"]
+]
+
+quack [ws.send socket "Hello!"]
+```
+
+### Library: `konacodes/sqlite`
+
+Embedded database.
+
+```duck
+quack [migrate "git+konacodes/sqlite" as db]
+
+quack [let conn be db.open("app.db")]
+quack [db.exec conn "CREATE TABLE IF NOT EXISTS ducks (name TEXT, age INTEGER)"]
+quack [db.exec conn "INSERT INTO ducks VALUES (?, ?)" list("Gerald", 5)]
+
+quack [let ducks be db.query conn "SELECT * FROM ducks WHERE age > ?" list(3)]
+quack [for each [duck] in ducks do
+  quack [print duck.name]
+]
+```
+
+### Library: `konacodes/test`
+
+Unit testing framework.
+
+```duck
+quack [migrate "git+konacodes/test" as test]
+
+quack [test.describe "Math operations" [] ->
+  quack [test.it "adds numbers correctly" [] ->
+    quack [test.expect(1 + 1).to-equal(2)]
+    quack [test.expect(5 + 5).to-equal(10)]
+  ]
+
+  quack [test.it "handles negative numbers" [] ->
+    quack [test.expect(-1 + 1).to-equal(0)]
+  ]
+]
+
+quack [test.run()]  -- Runs all tests, prints results
+```
+
+### Library: `konacodes/html`
+
+HTML templating and generation.
+
+```duck
+quack [migrate "git+konacodes/html" as h]
+
+quack [let page be h.doc(
+  h.head(
+    h.title("My Page")
+  ),
+  h.body(
+    h.h1("Welcome!"),
+    h.p("This is a paragraph."),
+    h.ul(
+      map(items, [item] -> h.li(item))
+    )
+  )
+)]
+
+quack [print h.render(page)]
+```
+
+### `goose fmt`
 
 Auto-formatter for Duck code.
 
@@ -381,8 +629,9 @@ Benefits:
 Proper namespacing, circular dependency handling, lazy loading.
 
 ```duck
-quack [migrate "std:http" exposing [get, post]]  -- Selective import
-quack [migrate "./utils" hiding [internal-fn]]    -- Hide internals
+quack [migrate "git+konacodes/http" exposing [get, post]]  -- Selective import
+quack [migrate "./utils" hiding [internal-fn]]              -- Hide internals
+quack [migrate "git+konacodes/big-lib" lazy]                -- Load on first use
 ```
 
 ### Duck Language Server (LSP)
@@ -415,15 +664,18 @@ quack [print "I run second"]
 
 Randomly skips 10% of quacked blocks. For testing "fault tolerance" (chaos engineering, duck-style).
 
-### `pond.duck` - Simulation mode
+### Library: `konacodes/pond` - Simulation mode
 
-A built-in duck pond simulator you can access from any program.
+A duck pond life simulator you can run from any program.
 
 ```duck
-quack [migrate "std:pond"]
+quack [migrate "git+konacodes/pond" as pond]
+
 quack [pond.add-duck "Gerald"]
 quack [pond.add-duck "Waddles"]
-quack [pond.simulate 100]  -- 100 ticks of duck pond life
+quack [pond.add-bread 10 20]  -- x, y coordinates
+quack [pond.simulate 100]     -- 100 ticks of duck pond life
+-- Watch the ducks waddle around, find bread, and interact
 ```
 
 ### Goose gets sassier over time
@@ -450,6 +702,88 @@ hello
 🏆 Library Author - Publish a package
 🏆 Goose Whisperer - Get a 10/10 rating
 🏆 Chaos Duck - Run with --chaos and survive
+```
+
+### Library: `konacodes/quackspeak`
+
+Translate text to duck sounds and back.
+
+```duck
+quack [migrate "git+konacodes/quackspeak" as qs]
+
+quack [print qs.encode("Hello")]     -- "QUACK quack QUACK quack quack"
+quack [print qs.decode("QUACK quack QUACK quack quack")]  -- "Hello"
+
+-- Encrypted duck communication
+quack [let secret be qs.encode("The bread is at midnight")]
+```
+
+### Library: `konacodes/ascii`
+
+ASCII art generators and utilities.
+
+```duck
+quack [migrate "git+konacodes/ascii" as art]
+
+quack [print art.banner("DUCK LANG")]
+-- ____  _   _  ____ _  __  _        _    _   _  ____
+-- |  _ \| | | |/ ___| |/ / | |      / \  | \ | |/ ___|
+-- | | | | | | | |   | ' /  | |     / _ \ |  \| | |  _
+-- | |_| | |_| | |___| . \  | |___ / ___ \| |\  | |_| |
+-- |____/ \___/ \____|_|\_\ |_____/_/   \_\_| \_|\____|
+
+quack [print art.box("Important message here")]
+quack [print art.duck()]  -- Prints an ASCII duck
+```
+
+### Library: `konacodes/game`
+
+Simple terminal game engine.
+
+```duck
+quack [migrate "git+konacodes/game" as game]
+
+quack [let screen be game.screen(80, 24)]
+quack [let player be game.sprite("🦆", 10, 10)]
+
+quack [game.on-key "w" [] -> quack [player.move-up()]]
+quack [game.on-key "s" [] -> quack [player.move-down()]]
+quack [game.on-key "a" [] -> quack [player.move-left()]]
+quack [game.on-key "d" [] -> quack [player.move-right()]]
+
+quack [game.loop screen 60 [] ->  -- 60 FPS
+  quack [screen.clear()]
+  quack [screen.draw(player)]
+  quack [screen.render()]
+]
+```
+
+### Library: `konacodes/sound`
+
+Play sounds and music.
+
+```duck
+quack [migrate "git+konacodes/sound" as sound]
+
+quack [sound.beep()]                      -- System beep
+quack [sound.play("quack.wav")]           -- Play audio file
+quack [sound.say("Hello, I am a duck")]   -- Text-to-speech
+
+quack [sound.tone(440, 500)]  -- 440Hz for 500ms (A note)
+```
+
+### Library: `konacodes/fortune`
+
+Random wisdom and nonsense.
+
+```duck
+quack [migrate "git+konacodes/fortune" as fortune]
+
+quack [print fortune.wisdom()]     -- Random inspirational quote
+quack [print fortune.joke()]       -- Random programming joke
+quack [print fortune.duck-fact()]  -- Random fact about ducks
+quack [print fortune.excuse()]     -- Random excuse for broken code
+-- "The code works on my machine because mercury is in retrograde"
 ```
 
 ---
