@@ -494,8 +494,12 @@ impl Interpreter {
 
     /// Execute a migrate statement - import code from another Duck file
     fn execute_migrate(&mut self, path: &str, alias: Option<&String>, _line: usize) -> Result<(), String> {
-        // Resolve the path relative to the current working directory
-        let file_path = PathBuf::from(path);
+        // Check if this is a git library reference (git+user/repo)
+        let file_path = if path.starts_with("git+") {
+            self.resolve_git_library(path)?
+        } else {
+            PathBuf::from(path)
+        };
 
         // Get canonical path to handle duplicates properly
         let canonical_path = file_path.canonicalize().map_err(|e| {
@@ -561,6 +565,89 @@ impl Interpreter {
         }
 
         Ok(())
+    }
+
+    /// Resolve a git+ library path to an actual file path
+    /// Format: git+user/repo[@version]
+    fn resolve_git_library(&self, path: &str) -> Result<PathBuf, String> {
+        // Strip the "git+" prefix
+        let lib_ref = path.strip_prefix("git+").unwrap_or(path);
+
+        // Parse optional version: user/repo@version or user/repo
+        let (lib_path, version) = if let Some(at_pos) = lib_ref.find('@') {
+            (&lib_ref[..at_pos], &lib_ref[at_pos + 1..])
+        } else {
+            (lib_ref, "main")
+        };
+
+        // Parse user/repo
+        let parts: Vec<&str> = lib_path.split('/').collect();
+        if parts.len() != 2 {
+            return Err(format!(
+                "Invalid library reference '{}'. Expected format: git+user/repo[@version]",
+                path
+            ));
+        }
+
+        let user = parts[0];
+        let repo = parts[1];
+
+        // Find the library in ~/.duck/libs/user/repo/version/
+        let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+        let libs_dir = home.join(".duck").join("libs");
+        let lib_dir = libs_dir.join(user).join(repo).join(version);
+
+        if !lib_dir.exists() {
+            return Err(format!(
+                "Library '{}/{}@{}' not installed.\n\
+                 Run: goose install {}/{} {}",
+                user, repo, version, user, repo, version
+            ));
+        }
+
+        // Look for metadata.dm to find the entry point
+        let metadata_path = lib_dir.join("metadata.dm");
+        let entry_file = if metadata_path.exists() {
+            // Parse metadata.dm to find [point to] section
+            let metadata = std::fs::read_to_string(&metadata_path)
+                .map_err(|e| format!("Failed to read metadata.dm: {}", e))?;
+
+            let mut entry_point = None;
+            let mut in_point_to = false;
+
+            for line in metadata.lines() {
+                let line = line.trim();
+                if line == "[point to]" {
+                    in_point_to = true;
+                    continue;
+                }
+                if line.starts_with('[') && line.ends_with(']') {
+                    in_point_to = false;
+                    continue;
+                }
+                if in_point_to && !line.is_empty() && !line.starts_with("//") {
+                    // This is the entry point path
+                    let entry = line.trim_start_matches("./");
+                    entry_point = Some(entry.to_string());
+                    break;
+                }
+            }
+
+            entry_point.unwrap_or_else(|| "lib.duck".to_string())
+        } else {
+            // Default to lib.duck
+            "lib.duck".to_string()
+        };
+
+        let full_path = lib_dir.join(&entry_file);
+        if !full_path.exists() {
+            return Err(format!(
+                "Library entry file '{}' not found in {}/{}@{}",
+                entry_file, user, repo, version
+            ));
+        }
+
+        Ok(full_path)
     }
 
     /// Execute multiple statements

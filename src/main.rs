@@ -49,6 +49,16 @@ enum Commands {
     },
     /// List available versions
     Versions,
+    /// Install a Duck library from GitHub
+    Install {
+        /// The library to install (format: user/repo)
+        library: String,
+        /// Version/branch to install (default: main)
+        #[arg(default_value = "main")]
+        version: String,
+    },
+    /// List installed libraries
+    Libs,
 }
 
 fn main() {
@@ -58,6 +68,8 @@ fn main() {
         Commands::Update => update_goose(None),
         Commands::Rollback { version } => update_goose(Some(version)),
         Commands::Versions => list_versions(),
+        Commands::Install { library, version } => install_library(&library, &version),
+        Commands::Libs => list_libraries(),
         _ => {
             // Print startup message for run/check/repl commands
             println!("{}", goose::startup());
@@ -549,4 +561,201 @@ fn download_binary(url: &str) -> Result<Vec<u8>, String> {
     }
 
     response.bytes().map(|b| b.to_vec()).map_err(|e| e.to_string())
+}
+
+// =============================================================================
+// Library Management
+// =============================================================================
+
+fn get_libs_dir() -> PathBuf {
+    get_install_dir().join("libs")
+}
+
+fn print_install_header() {
+    println!("\x1b[36m");
+    println!("   ____                         _____           _        _ _ ");
+    println!("  / ___| ___   ___  ___  ___   |_   _|         | |      | | |");
+    println!(" | |  _ / _ \\ / _ \\/ __|/ _ \\    | |  _ __  ___| |_ __ _| | |");
+    println!(" | |_| | (_) | (_) \\__ \\  __/    | | | '_ \\/ __| __/ _` | | |");
+    println!("  \\____|\\___/ \\___/|___/\\___|   |___/| | | \\__ \\ || (_| | | |");
+    println!("                                     |_| |_|___/\\__\\__,_|_|_|");
+    println!("\x1b[0m");
+}
+
+fn install_library(library: &str, version: &str) {
+    print_install_header();
+
+    // Parse library format: user/repo
+    let parts: Vec<&str> = library.split('/').collect();
+    if parts.len() != 2 {
+        println!("\x1b[31m[x]\x1b[0m Invalid library format. Use: user/repo");
+        println!("    Example: goose install konacodes/discord v0.1.0");
+        return;
+    }
+
+    let user = parts[0];
+    let repo = parts[1];
+
+    println!("\x1b[36m[*]\x1b[0m Installing {} @ {}", library, version);
+    println!();
+
+    // Create libs directory
+    let libs_dir = get_libs_dir();
+    let lib_path = libs_dir.join(user).join(repo).join(version);
+
+    if lib_path.exists() {
+        println!("\x1b[33m[!]\x1b[0m Library already installed at:");
+        println!("    {}", lib_path.display());
+        println!();
+        println!("To reinstall, remove the directory first:");
+        println!("    rm -rf \"{}\"", lib_path.display());
+        return;
+    }
+
+    if let Err(e) = fs::create_dir_all(&lib_path) {
+        println!("\x1b[31m[x]\x1b[0m Failed to create directory: {}", e);
+        return;
+    }
+
+    // Clone the repository
+    let git_url = format!("https://github.com/{}/{}.git", user, repo);
+    println!("\x1b[36m[*]\x1b[0m Cloning from GitHub...");
+    println!("\x1b[2m{}\x1b[0m", git_url);
+    println!();
+
+    animate_spinner("Fetching library...", 500);
+
+    // Use git clone with depth 1 for faster cloning
+    let output = std::process::Command::new("git")
+        .args(["clone", "--depth", "1", "--branch", version, &git_url, lib_path.to_str().unwrap()])
+        .output();
+
+    match output {
+        Ok(result) => {
+            if result.status.success() {
+                // Check for metadata.dm
+                let metadata_path = lib_path.join("metadata.dm");
+                if metadata_path.exists() {
+                    println!("\x1b[32m[+]\x1b[0m Found metadata.dm");
+
+                    // Parse metadata to show info
+                    if let Ok(metadata) = fs::read_to_string(&metadata_path) {
+                        for line in metadata.lines() {
+                            let line = line.trim();
+                            if line.starts_with("description:") {
+                                let desc = line.trim_start_matches("description:").trim().trim_matches('\'');
+                                println!("\x1b[2m    {}\x1b[0m", desc);
+                            }
+                        }
+                    }
+                } else {
+                    println!("\x1b[33m[!]\x1b[0m No metadata.dm found - using default lib.duck");
+                }
+
+                println!();
+                println!("\x1b[32m   ___ _   _  ___ ___ ___  ___ ___ \x1b[0m");
+                println!("\x1b[32m  / __| | | |/ __/ __/ _ \\/ __/ __|\x1b[0m");
+                println!("\x1b[32m  \\__ \\ |_| | (_| (_|  __/\\__ \\__ \\\x1b[0m");
+                println!("\x1b[32m  |___/\\__,_|\\___\\___\\___||___/___/\x1b[0m");
+                println!();
+                println!("\x1b[1mLibrary installed successfully!\x1b[0m");
+                println!();
+                println!("  Location: {}", lib_path.display());
+                println!();
+                println!("Usage in your Duck code:");
+                println!("  \x1b[33mquack [migrate \"git+{}/{}\" as {}]\x1b[0m", user, repo, repo);
+                println!();
+                println!("\x1b[2m\"Another library to ignore. How delightful.\"\x1b[0m");
+            } else {
+                let stderr = String::from_utf8_lossy(&result.stderr);
+                if stderr.contains("not find remote branch") || stderr.contains("Could not find remote branch") {
+                    println!("\x1b[31m[x]\x1b[0m Branch/version '{}' not found", version);
+                    println!("    Try: goose install {} main", library);
+                } else {
+                    println!("\x1b[31m[x]\x1b[0m Failed to clone repository");
+                    println!("\x1b[2m{}\x1b[0m", stderr);
+                }
+                // Clean up failed directory
+                let _ = fs::remove_dir_all(&lib_path);
+            }
+        }
+        Err(e) => {
+            println!("\x1b[31m[x]\x1b[0m Failed to run git: {}", e);
+            println!("    Make sure git is installed and in your PATH");
+        }
+    }
+}
+
+fn list_libraries() {
+    println!();
+    println!("\x1b[36m[*]\x1b[0m Installed Duck Libraries");
+    println!("\x1b[36m{}\x1b[0m", "=".repeat(40));
+    println!();
+
+    let libs_dir = get_libs_dir();
+
+    if !libs_dir.exists() {
+        println!("  \x1b[2mNo libraries installed yet.\x1b[0m");
+        println!();
+        println!("  Install one with:");
+        println!("    goose install user/repo version");
+        println!();
+        return;
+    }
+
+    let mut found_any = false;
+
+    // Iterate through user directories
+    if let Ok(users) = fs::read_dir(&libs_dir) {
+        for user_entry in users.flatten() {
+            if !user_entry.path().is_dir() {
+                continue;
+            }
+            let user_name = user_entry.file_name().to_string_lossy().to_string();
+
+            // Iterate through repo directories
+            if let Ok(repos) = fs::read_dir(user_entry.path()) {
+                for repo_entry in repos.flatten() {
+                    if !repo_entry.path().is_dir() {
+                        continue;
+                    }
+                    let repo_name = repo_entry.file_name().to_string_lossy().to_string();
+
+                    // Iterate through version directories
+                    if let Ok(versions) = fs::read_dir(repo_entry.path()) {
+                        for version_entry in versions.flatten() {
+                            if !version_entry.path().is_dir() {
+                                continue;
+                            }
+                            let version = version_entry.file_name().to_string_lossy().to_string();
+
+                            found_any = true;
+                            println!("  \x1b[32m{}/{}\x1b[0m @ \x1b[33m{}\x1b[0m", user_name, repo_name, version);
+
+                            // Try to read description from metadata.dm
+                            let metadata_path = version_entry.path().join("metadata.dm");
+                            if let Ok(metadata) = fs::read_to_string(metadata_path) {
+                                for line in metadata.lines() {
+                                    let line = line.trim();
+                                    if line.starts_with("description:") {
+                                        let desc = line.trim_start_matches("description:").trim().trim_matches('\'');
+                                        println!("    \x1b[2m{}\x1b[0m", desc);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if !found_any {
+        println!("  \x1b[2mNo libraries installed yet.\x1b[0m");
+        println!();
+        println!("  Install one with:");
+        println!("    goose install user/repo version");
+    }
+
+    println!();
 }
