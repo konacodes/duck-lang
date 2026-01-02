@@ -8,14 +8,6 @@ A living document of ideas, improvements, and wild dreams for the future of Duck
 
 Small changes that pack a punch. Weekend projects or rainy afternoon vibes.
 
-### `honk` as an alias for `print`
-
-Because why not? The goose should be able to honk.
-
-```duck
-quack [honk "Hello, World!"]  -- Same as print, more on-brand
-```
-
 ### `waddle` - Random delay
 
 A themed version of `sleep` that adds a bit of randomness (like a real duck waddling).
@@ -494,23 +486,35 @@ quack [for each [duck] in ducks do
 
 ### Library: `konacodes/test`
 
-Unit testing framework.
+Unit testing framework that builds on `honk` assertions.
+
+While `honk` is great for inline assertions that crash on failure, a test library lets you run multiple tests, collect results, and get nice output. Uses `honk` under the hood but catches failures gracefully.
 
 ```duck
 quack [migrate "git+konacodes/test" as test]
 
 quack [test.describe "Math operations" [] ->
   quack [test.it "adds numbers correctly" [] ->
-    quack [test.expect(1 + 1).to-equal(2)]
-    quack [test.expect(5 + 5).to-equal(10)]
+    quack [honk 1 + 1 == 2]          -- Use honk directly
+    quack [honk 5 + 5 == 10]
   ]
 
   quack [test.it "handles negative numbers" [] ->
-    quack [test.expect(-1 + 1).to-equal(0)]
+    quack [honk -1 + 1 == 0]
+  ]
+
+  quack [test.it "works with messages" [] ->
+    quack [honk 2 * 2 == 4 "basic multiplication"]
   ]
 ]
 
-quack [test.run()]  -- Runs all tests, prints results
+quack [test.run()]
+-- Output:
+-- Math operations
+--   ✓ adds numbers correctly
+--   ✓ handles negative numbers
+--   ✓ works with messages
+-- 3 passing, 0 failing
 ```
 
 ### Library: `konacodes/html`
