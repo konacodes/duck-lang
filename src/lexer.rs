@@ -27,6 +27,7 @@ pub enum TokenKind {
     LessEqual,
     GreaterEqual,
     Arrow,       // ->
+    FatArrow,    // =>
     Comma,
     Dot,
 
@@ -251,8 +252,10 @@ impl Lexer {
             '=' => {
                 if self.match_char('=') {
                     self.add_token(TokenKind::EqualEqual);
+                } else if self.match_char('>') {
+                    self.add_token(TokenKind::FatArrow);
                 } else {
-                    return Err(format!("Unexpected character '=' at line {}. Did you mean '==' or 'becomes'?", self.line));
+                    return Err(format!("Unexpected character '=' at line {}. Did you mean '==', '=>', or 'becomes'?", self.line));
                 }
             }
             '!' => {

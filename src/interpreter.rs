@@ -953,6 +953,15 @@ impl Interpreter {
                 Ok(Value::new_lambda(params.clone(), (**body).clone(), closure))
             }
 
+            Expr::BlockLambda { params, body } => {
+                let closure = self.create_closure();
+                Ok(Value::BlockLambda {
+                    params: params.clone(),
+                    body: body.clone(),
+                    closure,
+                })
+            }
+
             Expr::StructInit { name, fields } => {
                 // Check if struct type is defined
                 let struct_type = self.env.borrow().get(name);
@@ -1327,6 +1336,58 @@ impl Interpreter {
 
                 // Evaluate lambda body
                 let result = self.evaluate(&body, line)?;
+
+                self.env = old_env;
+                Ok(result)
+            }
+
+            Value::BlockLambda { params, body, closure } => {
+                if args.len() != params.len() {
+                    return Err(goose::error(
+                        ErrorKind::ArgumentMismatch {
+                            expected: params.len(),
+                            got: args.len(),
+                        },
+                        line,
+                        "in block lambda call",
+                    ));
+                }
+
+                // Create environment for block lambda
+                let lambda_env = Rc::new(RefCell::new(Environment::with_parent(Rc::clone(&self.env))));
+
+                // Bind parameters
+                for (param, arg) in params.iter().zip(args) {
+                    lambda_env.borrow_mut().define(param.clone(), arg);
+                }
+
+                // Bind closure variables
+                for (name, value) in closure.captured.borrow().iter() {
+                    if lambda_env.borrow().get(name).is_none() {
+                        lambda_env.borrow_mut().define(name.clone(), value.clone());
+                    }
+                }
+
+                let old_env = std::mem::replace(&mut self.env, lambda_env);
+
+                // Execute block lambda body statements
+                let mut result = Value::Null;
+                for stmt in &body {
+                    match self.execute_statement(stmt, line)? {
+                        ControlFlow::Return(v) => {
+                            result = v;
+                            break;
+                        }
+                        ControlFlow::Break | ControlFlow::Continue => {
+                            self.env = old_env;
+                            return Err(format!(
+                                "Unexpected break/continue outside loop at line {}",
+                                line
+                            ));
+                        }
+                        ControlFlow::None => {}
+                    }
+                }
 
                 self.env = old_env;
                 Ok(result)

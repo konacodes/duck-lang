@@ -135,10 +135,16 @@ pub enum Expr {
     /// List literal: [1, 2, 3]
     List(Vec<Expr>),
 
-    /// Lambda expression: [params] -> body
+    /// Lambda expression: [params] -> expr
     Lambda {
         params: Vec<String>,
         body: Box<Expr>,
+    },
+
+    /// Block lambda: [params] => [ quack [...] ... ]
+    BlockLambda {
+        params: Vec<String>,
+        body: Vec<Statement>,
     },
 
     /// Struct instantiation: StructName { field: value, ... }

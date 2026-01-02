@@ -841,6 +841,22 @@ impl Parser {
                     params,
                     body: Box::new(body),
                 };
+            } else if self.check(TokenKind::FatArrow) {
+                // Block lambda: [x] => [ quack [...] ... ]
+                self.advance();
+
+                // expr should be the parameter(s)
+                let params = self.extract_lambda_params(expr)?;
+
+                // Expect a bracket for the block body
+                self.expect(TokenKind::LeftBracket)?;
+                let body = self.parse_statement_body()?;
+                self.expect(TokenKind::RightBracket)?;
+
+                expr = Expr::BlockLambda {
+                    params,
+                    body,
+                };
             } else {
                 break;
             }

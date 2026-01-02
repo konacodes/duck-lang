@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
-use crate::ast::{Block, Expr};
+use crate::ast::{Block, Expr, Statement};
 
 /// Environment snapshot for closures - captures variables at function definition time
 #[derive(Debug, Clone)]
@@ -89,6 +89,13 @@ pub enum Value {
         closure: Closure,
     },
 
+    /// A block lambda (statement-bodied)
+    BlockLambda {
+        params: Vec<String>,
+        body: Vec<Statement>,
+        closure: Closure,
+    },
+
     /// A built-in function (identified by name)
     BuiltinFunction(String),
 
@@ -113,6 +120,7 @@ impl Value {
             Value::Struct { name, .. } => name,
             Value::Function { .. } => "function",
             Value::Lambda { .. } => "lambda",
+            Value::BlockLambda { .. } => "lambda",
             Value::BuiltinFunction(_) => "builtin",
             Value::StructType { name, .. } => name,
             Value::Null => "null",
@@ -131,6 +139,7 @@ impl Value {
             // Functions, structs, and struct types are always truthy
             Value::Function { .. } => true,
             Value::Lambda { .. } => true,
+            Value::BlockLambda { .. } => true,
             Value::BuiltinFunction(_) => true,
             Value::Struct { .. } => true,
             Value::StructType { .. } => true,
@@ -281,6 +290,9 @@ impl fmt::Display for Value {
             Value::Lambda { params, .. } => {
                 write!(f, "<lambda ({})>", params.join(", "))
             }
+            Value::BlockLambda { params, .. } => {
+                write!(f, "<lambda ({})>", params.join(", "))
+            }
             Value::BuiltinFunction(name) => write!(f, "<builtin {}>", name),
             Value::StructType { name, fields } => {
                 write!(f, "<struct {} {{ {} }}>", name, fields.join(", "))
@@ -361,6 +373,10 @@ impl PartialEq for Value {
             }
             (Value::Lambda { params: p1, .. }, Value::Lambda { params: p2, .. }) => {
                 // Lambdas with same parameter lists are considered equal
+                p1 == p2
+            }
+            (Value::BlockLambda { params: p1, .. }, Value::BlockLambda { params: p2, .. }) => {
+                // Block lambdas with same parameter lists are considered equal
                 p1 == p2
             }
             (Value::BuiltinFunction(a), Value::BuiltinFunction(b)) => a == b,
