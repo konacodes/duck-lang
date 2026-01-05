@@ -395,6 +395,15 @@ fn update_goose(target_version: Option<String>) {
                 return;
             }
 
+            // Remove old binary first (required on Unix - can't overwrite running executable)
+            // This works because the running process keeps the inode, but the filename is freed
+            if goose_path.exists() {
+                if let Err(e) = fs::remove_file(&goose_path) {
+                    println!("\x1b[31m[x]\x1b[0m Failed to remove old binary: {}", e);
+                    return;
+                }
+            }
+
             // Write new binary
             if let Err(e) = fs::write(&goose_path, &bytes) {
                 println!("\x1b[31m[x]\x1b[0m Failed to write binary: {}", e);
