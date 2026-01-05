@@ -4,9 +4,9 @@
 [submodule "projects/goose-oracle"]
 	path = projects/goose-oracle
 	url = https://github.com/konacodes/goose-oracle.git
-[submodule "libs/discord"]
-	path = libs/discord
-	url = https://github.com/konacodes/discord.git
 [submodule "libs/quests"]
 	path = libs/quests
 	url = https://github.com/konacodes/quests.git
+[submodule "libs/discord"]
+	path = libs/discord
+	url = https://github.com/konacodes/discord.git
