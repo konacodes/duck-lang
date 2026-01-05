@@ -645,21 +645,68 @@ fn install_library(library: &str, version: &str) {
             if result.status.success() {
                 // Check for metadata.dm
                 let metadata_path = lib_path.join("metadata.dm");
+                let mut dependencies: Vec<(String, String)> = Vec::new();
+
                 if metadata_path.exists() {
                     println!("\x1b[32m[+]\x1b[0m Found metadata.dm");
 
-                    // Parse metadata to show info
+                    // Parse metadata to show info and collect dependencies
                     if let Ok(metadata) = fs::read_to_string(&metadata_path) {
+                        let mut in_dependencies = false;
+
                         for line in metadata.lines() {
                             let line = line.trim();
+
+                            // Check for section headers
+                            if line.starts_with('[') && line.ends_with(']') {
+                                in_dependencies = line == "[dependencies]";
+                                continue;
+                            }
+
                             if line.starts_with("description:") {
                                 let desc = line.trim_start_matches("description:").trim().trim_matches('\'');
                                 println!("\x1b[2m    {}\x1b[0m", desc);
+                            }
+
+                            // Parse dependency lines (format: user/repo vX.Y.Z)
+                            if in_dependencies && !line.is_empty() && !line.starts_with("--") {
+                                let parts: Vec<&str> = line.split_whitespace().collect();
+                                if parts.len() >= 2 {
+                                    dependencies.push((parts[0].to_string(), parts[1].to_string()));
+                                }
                             }
                         }
                     }
                 } else {
                     println!("\x1b[33m[!]\x1b[0m No metadata.dm found - using default lib.duck");
+                }
+
+                // Install dependencies if any
+                if !dependencies.is_empty() {
+                    println!();
+                    println!("\x1b[36m[*]\x1b[0m Installing {} dependencies...", dependencies.len());
+                    for (dep_lib, dep_version) in &dependencies {
+                        println!("\x1b[2m    -> {} @ {}\x1b[0m", dep_lib, dep_version);
+                    }
+                    println!();
+
+                    for (dep_lib, dep_version) in dependencies {
+                        // Check if dependency is already installed
+                        let dep_parts: Vec<&str> = dep_lib.split('/').collect();
+                        if dep_parts.len() == 2 {
+                            let dep_path = get_libs_dir()
+                                .join(dep_parts[0])
+                                .join(dep_parts[1])
+                                .join(&dep_version);
+
+                            if !dep_path.exists() {
+                                install_library(&dep_lib, &dep_version);
+                            } else {
+                                println!("\x1b[32m[+]\x1b[0m Dependency {} @ {} already installed", dep_lib, dep_version);
+                            }
+                        }
+                    }
+                    println!();
                 }
 
                 println!();

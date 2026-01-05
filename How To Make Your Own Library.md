@@ -42,9 +42,14 @@ repo-url: 'https://github.com/yourusername/your-library'
 description: 'A brief description of what your library does'
 version: 'v0.1.0'
 
+[dependencies]
+konacodes/quests v1.0.0
+
 [point to]
 ./lib.duck
 ```
+
+*(The `[dependencies]` section is optional - only include it if your library needs other libraries)*
 
 ### The `[about]` Section
 
@@ -54,6 +59,25 @@ version: 'v0.1.0'
 | `repo-url` | Yes | Where does it live on the internet? |
 | `description` | Yes | What does it do? Keep it short. |
 | `version` | Yes | Semantic versioning, please! (v1.2.3) |
+
+### The `[dependencies]` Section (Optional)
+
+If your library depends on other libraries, list them here! The goose will automatically install them when your library is installed.
+
+```dm
+[dependencies]
+konacodes/quests v1.0.0
+mathduck/duck-math v2.1.0
+```
+
+Each line follows the format: `username/repo version`
+
+When someone runs `goose install` on your library, the goose will:
+1. Install your library
+2. Recursively install all dependencies
+3. Make everything available for import
+
+**Pro tip:** Always pin to a specific version! Using `main` or `latest` is a recipe for disaster when APIs change.
 
 ### The `[point to]` Section
 
@@ -323,6 +347,69 @@ Check your `metadata.dm` - the `[point to]` path must match an actual file.
 
 ### "The goose is disappointed"
 This is normal. The goose is always a little disappointed. Keep coding.
+
+---
+
+## Example: A Library with Dependencies
+
+Here's how the official Discord library uses the quests HTTP library as a dependency:
+
+### `metadata.dm`
+```dm
+[about]
+author: 'konacodes'
+repo-url: 'https://github.com/konacodes/discord'
+description: 'Discord API library for Duck-lang. Build bots that quack!'
+version: 'v0.2.0'
+
+[dependencies]
+konacodes/quests v1.0.0
+
+[point to]
+./lib.duck
+```
+
+### `lib.duck`
+```duck
+-- Discord Library for Duck
+-- Uses quests for HTTP helpers
+
+quack [migrate "git+konacodes/quests@v1.0.0" as quest]
+
+-- Configuration
+quack [let DISCORD-API be "https://discord.com/api/v10"]
+
+-- Send a message to a channel
+quack [define discord-send taking [token, channel-id, content] as
+  quack [let url be DISCORD-API + "/channels/" + channel-id + "/messages"]
+  quack [let payload be "{\"content\":\"" + content + "\"}"]
+  quack [let headers be list("Authorization", "Bot " + token, "Content-Type", "application/json")]
+
+  quack [attempt
+    quack [let response be http-post(url, payload, headers)]
+    quack [if quest.is-ok(response) then
+      quack [return json-parse(response.body)]
+    otherwise
+      quack [return nil]
+    ]
+  rescue err
+    quack [return nil]
+  ]
+]
+
+quack [print "Discord library loaded!"]
+```
+
+When a user installs this library:
+```bash
+goose install konacodes/discord v0.2.0
+```
+
+The goose automatically:
+1. Clones `konacodes/discord`
+2. Reads `metadata.dm` and sees the dependency on `konacodes/quests v1.0.0`
+3. Installs `konacodes/quests v1.0.0` first
+4. Makes both libraries available for use
 
 ---
 

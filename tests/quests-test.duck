@@ -1,0 +1,183 @@
+-- Quests Library Tests
+-- Tests the HTTP request library against public APIs
+--
+-- Run with: goose run tests/quests-test.duck
+
+quack [migrate "git+konacodes/test@v0.1.0" as t]
+quack [migrate "git+konacodes/quests@v1.0.0" as quest]
+
+-- =============================================================================
+-- URL Utility Tests
+-- =============================================================================
+
+quack [t.describe "URL Utilities"]
+
+quack [t.test "url-encode encodes spaces" [] => [
+  quack [let encoded be quest.url-encode("hello world")]
+  quack [honk encoded == "hello%20world"]
+]]
+
+quack [t.test "url-encode encodes ampersand" [] => [
+  quack [let encoded be quest.url-encode("a&b")]
+  quack [honk encoded == "a%26b"]
+]]
+
+quack [t.test "build-query creates query string" [] => [
+  quack [let query be quest.build-query(list("name", "duck", "age", "5"))]
+  quack [honk query == "name=duck&age=5"]
+]]
+
+quack [t.test "with-query adds query to URL" [] => [
+  quack [let url be quest.with-query("https://api.example.com", list("q", "test"))]
+  quack [honk url == "https://api.example.com?q=test"]
+]]
+
+-- =============================================================================
+-- Live HTTP GET Tests
+-- =============================================================================
+
+quack [t.describe "HTTP GET Requests"]
+
+quack [t.test "simple GET to httpbin returns 200" [] => [
+  quack [let response be quest.get("https://httpbin.org/get")]
+  quack [honk response.status == 200 "Expected 200 status"]
+]]
+
+quack [t.test "GET response contains body" [] => [
+  quack [let response be quest.get("https://httpbin.org/get")]
+  quack [honk len(response.body) > 0 "Response should have body"]
+]]
+
+quack [t.test "GET to jsonplaceholder returns user" [] => [
+  quack [let response be quest.get("https://jsonplaceholder.typicode.com/users/1")]
+  quack [honk response.status == 200 "Expected 200 status"]
+  quack [honk contains(response.body, "Leanne Graham") "Should contain user name"]
+]]
+
+quack [t.test "GET 404 returns 404 status" [] => [
+  quack [let response be quest.get("https://httpbin.org/status/404")]
+  quack [honk response.status == 404 "Expected 404 status"]
+]]
+
+quack [t.test "is-ok helper works on real response" [] => [
+  quack [let response be quest.get("https://httpbin.org/get")]
+  quack [honk quest.is-ok(response) "Expected is-ok to return true"]
+]]
+
+quack [t.test "is-client-error works on 404" [] => [
+  quack [let response be quest.get("https://httpbin.org/status/404")]
+  quack [honk quest.is-client-error(response) "Expected is-client-error to return true"]
+]]
+
+-- =============================================================================
+-- JSON Requests
+-- =============================================================================
+
+quack [t.describe "JSON Requests"]
+
+quack [t.test "get-json parses todo" [] => [
+  quack [let data be quest.get-json("https://jsonplaceholder.typicode.com/todos/1")]
+  quack [honk data != nil "Should return parsed JSON"]
+  quack [honk data.id == 1 "Should have id 1"]
+]]
+
+quack [t.test "get-json parses user" [] => [
+  quack [let user be quest.get-json("https://jsonplaceholder.typicode.com/users/1")]
+  quack [honk user.name == "Leanne Graham" "Should have correct name"]
+]]
+
+quack [t.test "get-json handles arrays" [] => [
+  quack [let todos be quest.get-json("https://jsonplaceholder.typicode.com/todos?_limit=3")]
+  quack [honk len(todos) == 3 "Should return 3 items"]
+]]
+
+-- =============================================================================
+-- HTTP POST Tests
+-- =============================================================================
+
+quack [t.describe "HTTP POST Requests"]
+
+quack [t.test "simple POST returns 200" [] => [
+  quack [let response be quest.post("https://httpbin.org/post", "hello duck")]
+  quack [honk response.status == 200 "Expected 200 status"]
+]]
+
+quack [t.test "POST body is echoed back" [] => [
+  quack [let response be quest.post("https://httpbin.org/post", "quack quack")]
+  quack [honk contains(response.body, "quack quack") "Should echo our data"]
+]]
+
+quack [t.test "POST with custom headers" [] => [
+  quack [let headers be list("X-Duck-Header", "honk")]
+  quack [let response be quest.post-with-headers("https://httpbin.org/post", "test", headers)]
+  quack [honk response.status == 200 "Expected 200 status"]
+  quack [honk contains(response.body, "X-Duck-Header") "Should include our header"]
+]]
+
+-- =============================================================================
+-- Request Builder Tests
+-- =============================================================================
+
+quack [t.describe "Request Builder"]
+
+quack [t.test "build-get creates working request" [] => [
+  quack [let req be quest.build-get("https://httpbin.org/get")]
+  quack [let response be quest.send(req)]
+  quack [honk response.status == 200 "Expected 200 status"]
+]]
+
+quack [t.test "builder with custom header" [] => [
+  quack [let req be quest.build-get("https://httpbin.org/headers")]
+  quack [req becomes quest.with-header(req, "X-Test-Header", "duck-value")]
+  quack [let response be quest.send(req)]
+  quack [honk contains(response.body, "X-Test-Header") "Should include custom header"]
+]]
+
+quack [t.test "build-post creates working request" [] => [
+  quack [let req be quest.build-post("https://httpbin.org/post")]
+  quack [req becomes quest.with-body(req, "posted via builder")]
+  quack [let response be quest.send(req)]
+  quack [honk response.status == 200 "Expected 200 status"]
+  quack [honk contains(response.body, "posted via builder") "Should contain body"]
+]]
+
+-- =============================================================================
+-- Fun Public APIs
+-- =============================================================================
+
+quack [t.describe "Fun Public APIs"]
+
+quack [t.test "dog.ceo returns random dog" [] => [
+  quack [let data be quest.get-json("https://dog.ceo/api/breeds/image/random")]
+  quack [honk data.status == "success" "API should return success"]
+  quack [honk contains(data.message, "https://") "Should have image URL"]
+]]
+
+quack [t.test "catfact.ninja returns fact" [] => [
+  quack [let response be quest.get("https://catfact.ninja/fact")]
+  quack [honk response.status == 200 "Expected 200 status"]
+  quack [honk contains(response.body, "fact") "Should contain a fact"]
+]]
+
+quack [t.test "ipify returns IP address" [] => [
+  quack [let data be quest.get-json("https://api.ipify.org?format=json")]
+  quack [honk data != nil "Should return data"]
+  quack [honk contains(data.ip, ".") "Should contain IP address"]
+]]
+
+-- =============================================================================
+-- Run all tests
+-- =============================================================================
+
+quack [print ""]
+quack [print "========================================"]
+quack [print "       QUESTS LIBRARY TEST SUITE"]
+quack [print "========================================"]
+
+quack [let success be t.run()]
+
+quack [if success then
+  quack [print "All tests passed! The goose approves."]
+otherwise
+  quack [print "Some tests failed. The goose is disappointed."]
+]
