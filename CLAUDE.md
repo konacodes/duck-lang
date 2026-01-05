@@ -2,6 +2,21 @@
 
 This document provides essential context for AI assistants working on the Duck programming language codebase.
 
+## Before You Start
+
+**Check that Goose is installed and up-to-date:**
+```bash
+goose versions
+```
+
+If goose is not installed or outdated, install/update with:
+```bash
+curl -fsSL https://raw.githubusercontent.com/konacodes/duck-lang/master/install.sh | bash
+source ~/.zshrc  # or restart terminal
+```
+
+Always use `goose` commands directly (not `./target/release/goose` or cargo paths) to ensure consistency.
+
 ## Project Overview
 
 Duck is a humorous programming language where every code block must be preceded by `quack` to be executed. The interpreter is named "Goose" and provides snarky, duck-themed commentary on your code.
@@ -20,14 +35,20 @@ quack quack [print "A"] [print "B"] -- Multiple quacks authorize multiple blocks
 duck-lang/
 ├── Cargo.toml          # Project manifest - binary is named "goose"
 ├── src/
-│   ├── main.rs         # CLI entry point (run, check, repl commands)
+│   ├── main.rs         # CLI entry point (run, check, repl, update, install commands)
 │   ├── lexer.rs        # Tokenization with string interpolation support
 │   ├── parser.rs       # Recursive descent parser with quack tracking
 │   ├── ast.rs          # AST node definitions (expressions, statements, blocks)
 │   ├── interpreter.rs  # Tree-walking interpreter with lexical scoping
 │   ├── values.rs       # Runtime value types (Number, String, List, Struct, etc.)
 │   ├── builtins.rs     # Built-in functions (print, input, len, range, etc.)
+│   ├── web.rs          # Web primitives (HTTP client, WebSocket support)
 │   └── goose.rs        # Snarky error messages and code rating system
+├── libs/               # Official Duck libraries (git submodules)
+│   └── quests/         # Clean HTTP request library for Duck
+├── projects/           # Example projects (git submodules)
+│   ├── pond/           # Text adventure game
+│   └── goose-oracle/   # Fortune teller
 └── examples/           # Example Duck programs
     ├── hello.duck      # Basic hello world with variables
     ├── fizzbuzz.duck   # Classic FizzBuzz implementation
@@ -144,9 +165,12 @@ cargo fmt                # Format code
 
 ### Running Duck Programs
 ```bash
-./target/debug/goose run examples/hello.duck   # Run a file
-./target/debug/goose check examples/hello.duck # Check for missing quacks
-./target/debug/goose repl                      # Interactive mode
+goose run examples/hello.duck   # Run a file
+goose check examples/hello.duck # Check for missing quacks
+goose repl                      # Interactive mode
+goose versions                  # Check installed/available versions
+goose update                    # Update to latest version
+goose install user/repo v1.0.0  # Install a library
 ```
 
 ### Test Structure
@@ -203,7 +227,16 @@ Key tokens defined in `lexer.rs`:
 - `While`/`Do`, `Repeat`/`Times`, `For`/`Each`/`In` - loops
 
 ### Built-in Functions
-Available builtins: `print`, `input`, `random`, `floor`, `ceil`, `abs`, `type-of`, `len`, `push`, `pop`, `string`, `number`, `sqrt`, `pow`, `min`, `max`, `range`
+
+**Core:** `print`, `input`, `random`, `floor`, `ceil`, `abs`, `type-of`, `len`, `push`, `pop`, `string`, `number`, `sqrt`, `pow`, `min`, `max`, `range`
+
+**String/List:** `reverse`, `sort`, `join`, `split`, `trim`, `uppercase`, `lowercase`, `contains`, `keys`, `values`
+
+**File I/O:** `read-file`, `write-file`, `append-file`, `file-exists`
+
+**Web (from web.rs):** `http-get`, `http-post`, `base64-encode`, `base64-decode`, `json-parse`, `json-stringify`
+
+**System:** `env`, `sleep`
 
 ## Code Rating System
 

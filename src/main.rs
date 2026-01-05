@@ -5,6 +5,7 @@ mod values;
 mod interpreter;
 mod builtins;
 mod goose;
+mod web;
 
 use clap::{Parser, Subcommand};
 use std::fs;
