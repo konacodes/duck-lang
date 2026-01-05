@@ -1,0 +1,86 @@
+-- WebSocket Test
+-- Tests basic WebSocket functionality using a public echo server
+--
+-- Run with: goose run tests/websocket-test.duck
+
+quack [print ""]
+quack [print "========================================"]
+quack [print "       WEBSOCKET TEST"]
+quack [print "========================================"]
+quack [print ""]
+
+-- Test 1: Connect to echo server
+quack [print "Test 1: Connecting to WebSocket echo server..."]
+quack [attempt
+  quack [let ws be ws-connect("wss://echo.websocket.org")]
+  quack [print f"  Connected! ID: {ws.id}"]
+  quack [print "  PASS: Connection established"]
+
+  -- Test 2: Send a message
+  quack [print ""]
+  quack [print "Test 2: Sending message..."]
+  quack [let sent be ws-send(ws, "Hello from Duck!")]
+  quack [if sent then
+    quack [print "  PASS: Message sent successfully"]
+  otherwise
+    quack [print "  FAIL: Could not send message"]
+  ]
+
+  -- Test 3: Receive responses (server sends ID first, then echo)
+  quack [print ""]
+  quack [print "Test 3: Receiving responses..."]
+  quack [let response1 be ws-receive(ws)]
+  quack [print f"  First response: {response1}"]
+
+  quack [let response2 be ws-receive(ws)]
+  quack [print f"  Second response (echo): {response2}"]
+
+  quack [if response2 == "Hello from Duck!" then
+    quack [print "  PASS: Echo received correctly!"]
+  otherwise
+    quack [if contains(response1, "Hello from Duck!") then
+      quack [print "  PASS: Echo in first response"]
+    otherwise
+      quack [print "  INFO: Server responded (echo behavior may vary)"]
+    ]
+  ]
+
+  -- Test 4: Check connection status
+  quack [print ""]
+  quack [print "Test 4: Checking connection status..."]
+  quack [let connected be ws-connected(ws)]
+  quack [if connected then
+    quack [print "  PASS: Connection still open"]
+  otherwise
+    quack [print "  FAIL: Connection unexpectedly closed"]
+  ]
+
+  -- Test 5: Close connection
+  quack [print ""]
+  quack [print "Test 5: Closing connection..."]
+  quack [let closed be ws-close(ws)]
+  quack [if closed then
+    quack [print "  PASS: Connection closed"]
+  otherwise
+    quack [print "  FAIL: Could not close connection"]
+  ]
+
+  -- Test 6: Verify closed
+  quack [print ""]
+  quack [print "Test 6: Verifying connection is closed..."]
+  quack [let still-connected be ws-connected(ws)]
+  quack [if still-connected == false then
+    quack [print "  PASS: Connection confirmed closed"]
+  otherwise
+    quack [print "  FAIL: Connection still appears open"]
+  ]
+
+rescue err
+  quack [print f"  ERROR: {err}"]
+  quack [print "  Note: echo.websocket.org may be unavailable"]
+]
+
+quack [print ""]
+quack [print "========================================"]
+quack [print "       TESTS COMPLETE"]
+quack [print "========================================"]

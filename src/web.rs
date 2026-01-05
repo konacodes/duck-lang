@@ -289,64 +289,250 @@ pub fn builtin_base64_decode(args: Vec<Value>) -> Result<Value, String> {
 }
 
 // =============================================================================
-// WebSocket Support (TODO: Future Implementation)
+// WebSocket Support
 // =============================================================================
 
-// WebSocket functionality planned for future versions.
-//
-// Proposed API:
-//
-// ```duck
-// -- Connect to a WebSocket server
-// quack [let ws be ws-connect("wss://echo.websocket.org")]
-//
-// -- Send a message
-// quack [ws-send(ws, "Hello, server!")]
-//
-// -- Receive a message (blocking)
-// quack [let message be ws-receive(ws)]
-//
-// -- Close the connection
-// quack [ws-close(ws)]
-//
-// -- Event-based handling (callback style)
-// quack [ws-on-message(ws, [msg] -> [
-//   quack [print f"Received: {msg}"]
-// ])]
-//
-// quack [ws-on-error(ws, [err] -> [
-//   quack [print f"Error: {err}"]
-// ])]
-//
-// quack [ws-on-close(ws, [x] -> [
-//   quack [print "Connection closed"]
-// ])]
-// ```
-//
-// Implementation notes:
-// - Will require `tungstenite` or `tokio-tungstenite` crate
-// - Need to handle async nature of WebSockets
-// - Consider whether to use blocking or async runtime
-// - WebSocket connections should be stored as a new Value type
+use std::net::TcpStream;
+use std::sync::Mutex;
+use tungstenite::{connect, Message, WebSocket};
+use tungstenite::stream::MaybeTlsStream;
 
-/// Placeholder for WebSocket connect (not yet implemented)
-pub fn builtin_ws_connect(_args: Vec<Value>) -> Result<Value, String> {
-    Err("WebSocket support coming soon! The goose is still learning to swim in async waters.".to_string())
+// Global WebSocket connection store
+// Each connection is identified by a unique numeric ID
+lazy_static::lazy_static! {
+    static ref WS_CONNECTIONS: Mutex<HashMap<u64, WebSocket<MaybeTlsStream<TcpStream>>>> =
+        Mutex::new(HashMap::new());
+    static ref WS_NEXT_ID: Mutex<u64> = Mutex::new(1);
 }
 
-/// Placeholder for WebSocket send (not yet implemented)
-pub fn builtin_ws_send(_args: Vec<Value>) -> Result<Value, String> {
-    Err("WebSocket support coming soon! The goose is still learning to swim in async waters.".to_string())
+/// Get the next unique WebSocket connection ID
+fn next_ws_id() -> u64 {
+    let mut id = WS_NEXT_ID.lock().unwrap();
+    let current = *id;
+    *id += 1;
+    current
 }
 
-/// Placeholder for WebSocket receive (not yet implemented)
-pub fn builtin_ws_receive(_args: Vec<Value>) -> Result<Value, String> {
-    Err("WebSocket support coming soon! The goose is still learning to swim in async waters.".to_string())
+/// Connect to a WebSocket server
+/// Usage: ws-connect("wss://example.com/socket")
+/// Returns: A connection handle (number) to use with other ws-* functions
+pub fn builtin_ws_connect(args: Vec<Value>) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("ws-connect() requires 1 argument (url)".to_string());
+    }
+
+    let url = match &args[0] {
+        Value::String(u) => u.clone(),
+        other => {
+            return Err(format!(
+                "ws-connect() expects a URL string, got {}",
+                other.type_name()
+            ))
+        }
+    };
+
+    // Connect to the WebSocket server
+    let (socket, _response) = connect(&url)
+        .map_err(|e| format!("WebSocket connection failed: {}", e))?;
+
+    // Store the connection and return the ID
+    let id = next_ws_id();
+    WS_CONNECTIONS.lock().unwrap().insert(id, socket);
+
+    // Return a struct with the connection ID and URL for debugging
+    let mut fields = HashMap::new();
+    fields.insert("id".to_string(), Value::Number(id as f64));
+    fields.insert("url".to_string(), Value::String(url));
+    fields.insert("connected".to_string(), Value::Boolean(true));
+
+    Ok(Value::new_struct("websocket".to_string(), fields))
 }
 
-/// Placeholder for WebSocket close (not yet implemented)
-pub fn builtin_ws_close(_args: Vec<Value>) -> Result<Value, String> {
-    Err("WebSocket support coming soon! The goose is still learning to swim in async waters.".to_string())
+/// Send a message through a WebSocket connection
+/// Usage: ws-send(ws, "message")
+/// Returns: true on success, false on failure
+pub fn builtin_ws_send(args: Vec<Value>) -> Result<Value, String> {
+    if args.len() < 2 {
+        return Err("ws-send() requires 2 arguments (connection, message)".to_string());
+    }
+
+    // Get the connection ID from the websocket struct
+    let conn_id = match &args[0] {
+        Value::Struct { fields, .. } => {
+            let borrowed = fields.borrow();
+            match borrowed.get("id") {
+                Some(Value::Number(n)) => *n as u64,
+                _ => return Err("Invalid WebSocket connection object".to_string()),
+            }
+        }
+        Value::Number(n) => *n as u64,
+        other => {
+            return Err(format!(
+                "ws-send() expects a WebSocket connection, got {}",
+                other.type_name()
+            ))
+        }
+    };
+
+    let message = match &args[1] {
+        Value::String(s) => s.clone(),
+        other => {
+            return Err(format!(
+                "ws-send() expects a string message, got {}",
+                other.type_name()
+            ))
+        }
+    };
+
+    // Get the connection and send
+    let mut connections = WS_CONNECTIONS.lock().unwrap();
+    match connections.get_mut(&conn_id) {
+        Some(socket) => {
+            socket
+                .send(Message::Text(message))
+                .map_err(|e| format!("WebSocket send failed: {}", e))?;
+            Ok(Value::Boolean(true))
+        }
+        None => Err(format!("WebSocket connection {} not found or closed", conn_id)),
+    }
+}
+
+/// Receive a message from a WebSocket connection (blocking)
+/// Usage: ws-receive(ws)
+/// Returns: The received message as a string, or nil if connection closed
+pub fn builtin_ws_receive(args: Vec<Value>) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("ws-receive() requires 1 argument (connection)".to_string());
+    }
+
+    // Get the connection ID
+    let conn_id = match &args[0] {
+        Value::Struct { fields, .. } => {
+            let borrowed = fields.borrow();
+            match borrowed.get("id") {
+                Some(Value::Number(n)) => *n as u64,
+                _ => return Err("Invalid WebSocket connection object".to_string()),
+            }
+        }
+        Value::Number(n) => *n as u64,
+        other => {
+            return Err(format!(
+                "ws-receive() expects a WebSocket connection, got {}",
+                other.type_name()
+            ))
+        }
+    };
+
+    // Get the connection and receive
+    let mut connections = WS_CONNECTIONS.lock().unwrap();
+    match connections.get_mut(&conn_id) {
+        Some(socket) => {
+            match socket.read() {
+                Ok(msg) => {
+                    match msg {
+                        Message::Text(text) => Ok(Value::String(text)),
+                        Message::Binary(data) => {
+                            // Return binary data as base64 encoded string
+                            use base64::Engine;
+                            let encoded = base64::engine::general_purpose::STANDARD.encode(&data);
+                            let mut fields = HashMap::new();
+                            fields.insert("type".to_string(), Value::String("binary".to_string()));
+                            fields.insert("data".to_string(), Value::String(encoded));
+                            Ok(Value::new_struct("ws-message".to_string(), fields))
+                        }
+                        Message::Ping(_) | Message::Pong(_) => {
+                            // Handle ping/pong internally, try to read next message
+                            drop(connections);
+                            builtin_ws_receive(args)
+                        }
+                        Message::Close(_) => {
+                            Ok(Value::Null)
+                        }
+                        Message::Frame(_) => {
+                            // Raw frame, skip and read next
+                            drop(connections);
+                            builtin_ws_receive(args)
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Connection error or closed
+                    Err(format!("WebSocket receive failed: {}", e))
+                }
+            }
+        }
+        None => Err(format!("WebSocket connection {} not found or closed", conn_id)),
+    }
+}
+
+/// Close a WebSocket connection
+/// Usage: ws-close(ws)
+/// Returns: true on success
+pub fn builtin_ws_close(args: Vec<Value>) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("ws-close() requires 1 argument (connection)".to_string());
+    }
+
+    // Get the connection ID
+    let conn_id = match &args[0] {
+        Value::Struct { fields, .. } => {
+            let borrowed = fields.borrow();
+            match borrowed.get("id") {
+                Some(Value::Number(n)) => *n as u64,
+                _ => return Err("Invalid WebSocket connection object".to_string()),
+            }
+        }
+        Value::Number(n) => *n as u64,
+        other => {
+            return Err(format!(
+                "ws-close() expects a WebSocket connection, got {}",
+                other.type_name()
+            ))
+        }
+    };
+
+    // Remove and close the connection
+    let mut connections = WS_CONNECTIONS.lock().unwrap();
+    match connections.remove(&conn_id) {
+        Some(mut socket) => {
+            let _ = socket.close(None); // Ignore close errors
+            Ok(Value::Boolean(true))
+        }
+        None => {
+            // Already closed, that's fine
+            Ok(Value::Boolean(true))
+        }
+    }
+}
+
+/// Check if a WebSocket connection is still open
+/// Usage: ws-connected(ws)
+/// Returns: true if connected, false otherwise
+pub fn builtin_ws_connected(args: Vec<Value>) -> Result<Value, String> {
+    if args.is_empty() {
+        return Err("ws-connected() requires 1 argument (connection)".to_string());
+    }
+
+    // Get the connection ID
+    let conn_id = match &args[0] {
+        Value::Struct { fields, .. } => {
+            let borrowed = fields.borrow();
+            match borrowed.get("id") {
+                Some(Value::Number(n)) => *n as u64,
+                _ => return Err("Invalid WebSocket connection object".to_string()),
+            }
+        }
+        Value::Number(n) => *n as u64,
+        other => {
+            return Err(format!(
+                "ws-connected() expects a WebSocket connection, got {}",
+                other.type_name()
+            ))
+        }
+    };
+
+    let connections = WS_CONNECTIONS.lock().unwrap();
+    Ok(Value::Boolean(connections.contains_key(&conn_id)))
 }
 
 // =============================================================================
@@ -389,9 +575,30 @@ mod tests {
     }
 
     #[test]
-    fn test_websocket_placeholder() {
+    fn test_websocket_connect_requires_url() {
         let result = builtin_ws_connect(vec![]);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("coming soon"));
+        assert!(result.unwrap_err().contains("requires 1 argument"));
+    }
+
+    #[test]
+    fn test_websocket_send_requires_args() {
+        let result = builtin_ws_send(vec![]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("requires 2 arguments"));
+    }
+
+    #[test]
+    fn test_websocket_receive_requires_connection() {
+        let result = builtin_ws_receive(vec![]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("requires 1 argument"));
+    }
+
+    #[test]
+    fn test_websocket_close_requires_connection() {
+        let result = builtin_ws_close(vec![]);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("requires 1 argument"));
     }
 }

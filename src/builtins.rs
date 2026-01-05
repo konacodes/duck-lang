@@ -64,11 +64,12 @@ pub fn is_builtin(name: &str) -> bool {
             // Base64 encoding
             | "base64-encode"
             | "base64-decode"
-            // WebSocket (placeholder)
+            // WebSocket
             | "ws-connect"
             | "ws-send"
             | "ws-receive"
             | "ws-close"
+            | "ws-connected"
     )
 }
 
@@ -120,11 +121,12 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, String> {
         // Base64 encoding (from web.rs)
         "base64-encode" => web::builtin_base64_encode(args),
         "base64-decode" => web::builtin_base64_decode(args),
-        // WebSocket (from web.rs - placeholder)
+        // WebSocket (from web.rs)
         "ws-connect" => web::builtin_ws_connect(args),
         "ws-send" => web::builtin_ws_send(args),
         "ws-receive" => web::builtin_ws_receive(args),
         "ws-close" => web::builtin_ws_close(args),
+        "ws-connected" => web::builtin_ws_connected(args),
         _ => Err(format!("Unknown builtin: {}", name)),
     }
 }
