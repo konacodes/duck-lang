@@ -1,0 +1,47 @@
+-- Number Guessing Game
+-- The goose picks a number, you try to find it
+
+quack [print ""]
+quack [print "  GUESS THE NUMBER"]
+quack [print "  ================"]
+quack [print ""]
+quack [print "I'm thinking of a number between 1 and 100."]
+quack [print "Can you guess it?"]
+quack [print ""]
+
+quack [let secret be floor(random() * 100) + 1]
+quack [let guesses be 0]
+quack [let won be false]
+
+quack [while not won do
+  quack [let guess-str be input("Your guess: ")]
+  quack [let guess be number(guess-str)]
+  quack [guesses becomes guesses + 1]
+
+  quack [if guess == secret then
+    quack [won becomes true]
+    quack [print ""]
+    quack [if guesses == 1 then
+      quack [print "WHAT. First try?! Are you psychic?"]
+    otherwise
+      quack [if guesses <= 5 then
+        quack [print f"Nice! You got it in {guesses} guesses."]
+      otherwise
+        quack [if guesses <= 10 then
+          quack [print f"Not bad. {guesses} guesses."]
+        otherwise
+          quack [print f"Finally! Took you {guesses} guesses."]
+        ]
+      ]
+    ]
+  otherwise
+    quack [if guess < secret then
+      quack [print "Higher!"]
+    otherwise
+      quack [print "Lower!"]
+    ]
+  ]
+]
+
+quack [print ""]
+quack [print "Thanks for playing!"]

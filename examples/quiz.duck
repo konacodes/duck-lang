@@ -1,0 +1,58 @@
+-- Duck Trivia Quiz
+-- Test your knowledge!
+
+quack [struct question with [text, answer]]
+
+quack [let questions be list(
+  question("What is the capital of France?", "paris"),
+  question("How many legs does a spider have?", "8"),
+  question("What planet is known as the Red Planet?", "mars"),
+  question("What is the largest ocean?", "pacific"),
+  question("How many continents are there?", "7")
+)]
+
+quack [print ""]
+quack [print "  DUCK TRIVIA"]
+quack [print "  ==========="]
+quack [print ""]
+quack [print "Answer these 5 questions. Type your answer and press enter."]
+quack [print "(Answers are case-insensitive)"]
+quack [print ""]
+
+quack [let score be 0]
+quack [let q-num be 1]
+
+quack [for each [q] in questions do
+  quack [print f"Question {q-num}: {q.text}"]
+  quack [let answer be input("> ")]
+
+  -- Convert to lowercase for comparison
+  quack [let correct be q.answer]
+
+  quack [if answer == correct or answer == q.answer then
+    quack [print "Correct!"]
+    quack [print ""]
+    quack [score becomes score + 1]
+  otherwise
+    quack [print f"Nope! The answer was: {q.answer}"]
+    quack [print ""]
+  ]
+
+  quack [q-num becomes q-num + 1]
+]
+
+quack [print "  RESULTS"]
+quack [print "  ======="]
+quack [print f"  You got {score} out of 5 correct!"]
+quack [print ""]
+
+quack [if score == 5 then
+  quack [print "  Perfect score! You're a trivia master!"]
+otherwise
+  quack [if score >= 3 then
+    quack [print "  Nice job! You know your stuff."]
+  otherwise
+    quack [print "  Better luck next time!"]
+  ]
+]
+quack [print ""]

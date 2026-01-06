@@ -1,0 +1,91 @@
+-- Simple Calculator
+-- Supports: +, -, *, /, sqrt, pow, clear, quit
+
+quack [print ""]
+quack [print "  CALCULATOR"]
+quack [print "  =========="]
+quack [print "  Enter: <num> <op> <num>  (e.g., 5 + 3)"]
+quack [print "  Or: sqrt <num>, pow <base> <exp>"]
+quack [print "  Commands: clear, quit"]
+quack [print ""]
+
+quack [let memory be 0]
+quack [let running be true]
+
+quack [while running do
+  quack [let line be input("calc> ")]
+
+  quack [if line == "quit" or line == "q" then
+    quack [running becomes false]
+  otherwise
+    quack [if line == "clear" or line == "c" then
+      quack [memory becomes 0]
+      quack [print "Memory cleared"]
+    otherwise
+      quack [if line == "" then
+        -- do nothing
+        quack [let unused be 0]
+      otherwise
+        -- Parse the input
+        quack [let parts be split(line, " ")]
+        quack [let num-parts be len(parts)]
+
+        quack [if num-parts == 2 and (parts at 0) == "sqrt" then
+          quack [let n be number(parts at 1)]
+          quack [let result be sqrt(n)]
+          quack [print f"  = {result}"]
+          quack [memory becomes result]
+        otherwise
+          quack [if num-parts == 3 then
+            quack [let a be parts at 0]
+            quack [let op be parts at 1]
+            quack [let b be parts at 2]
+
+            quack [if a == "pow" then
+              quack [let base be number(op)]
+              quack [let exp be number(b)]
+              quack [let result be pow(base, exp)]
+              quack [print f"  = {result}"]
+              quack [memory becomes result]
+            otherwise
+              quack [let num1 be number(a)]
+              quack [let num2 be number(b)]
+              quack [let result be 0]
+
+              quack [if op == "+" then
+                quack [result becomes num1 + num2]
+              otherwise
+                quack [if op == "-" then
+                  quack [result becomes num1 - num2]
+                otherwise
+                  quack [if op == "*" then
+                    quack [result becomes num1 * num2]
+                  otherwise
+                    quack [if op == "/" then
+                      quack [if num2 == 0 then
+                        quack [print "  Error: division by zero"]
+                        quack [result becomes memory]
+                      otherwise
+                        quack [result becomes num1 / num2]
+                      ]
+                    otherwise
+                      quack [print f"  Unknown operator: {op}"]
+                      quack [result becomes memory]
+                    ]
+                  ]
+                ]
+              ]
+
+              quack [print f"  = {result}"]
+              quack [memory becomes result]
+            ]
+          otherwise
+            quack [print "  Usage: <num> <op> <num> or sqrt <num>"]
+          ]
+        ]
+      ]
+    ]
+  ]
+]
+
+quack [print ""]

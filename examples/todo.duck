@@ -1,0 +1,77 @@
+-- A simple todo list manager
+-- Run with: goose run examples/todo.duck
+
+quack [let todos be list()]
+
+quack [define show-todos taking [] as
+  quack [print ""]
+  quack [if len(todos) == 0 then
+    quack [print "  No tasks yet. Add one!"]
+  otherwise
+    quack [let i be 1]
+    quack [for each [task] in todos do
+      quack [print f"  {i}. {task}"]
+      quack [i becomes i + 1]
+    ]
+  ]
+  quack [print ""]
+]
+
+quack [define add-todo taking [task] as
+  quack [todos push task]
+  quack [print f"Added: {task}"]
+]
+
+quack [define remove-todo taking [num] as
+  quack [if num < 1 or num > len(todos) then
+    quack [print "Invalid task number"]
+  otherwise
+    quack [let removed be todos at (num - 1)]
+    quack [let new-list be list()]
+    quack [let i be 0]
+    quack [for each [task] in todos do
+      quack [if i != (num - 1) then
+        quack [new-list push task]
+      ]
+      quack [i becomes i + 1]
+    ]
+    quack [todos becomes new-list]
+    quack [print f"Done: {removed}"]
+  ]
+]
+
+quack [print ""]
+quack [print "  TODO LIST"]
+quack [print "  ========="]
+quack [print ""]
+
+quack [let running be true]
+quack [while running do
+  quack [print "  [a]dd  [d]one  [l]ist  [q]uit"]
+  quack [let cmd be input("> ")]
+
+  quack [if cmd == "q" or cmd == "quit" then
+    quack [running becomes false]
+    quack [print "Bye!"]
+  otherwise
+    quack [if cmd == "l" or cmd == "list" then
+      quack [let unused be show-todos()]
+    otherwise
+      quack [if cmd == "a" or cmd == "add" then
+        quack [let task be input("Task: ")]
+        quack [let unused be add-todo(task)]
+      otherwise
+        quack [if cmd == "d" or cmd == "done" then
+          quack [let unused be show-todos()]
+          quack [let num-str be input("Which #? ")]
+          quack [let num be number(num-str)]
+          quack [let unused2 be remove-todo(num)]
+        otherwise
+          quack [if cmd != "" then
+            quack [print "Unknown command"]
+          ]
+        ]
+      ]
+    ]
+  ]
+]
