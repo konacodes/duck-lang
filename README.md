@@ -45,6 +45,61 @@ quack [print "Hello"]   -- Runs
 
 The goose wanted `.goose` but the duck mass-emailed us again.
 
+## Editor Support
+
+The goose reluctantly provides IDE features. Syntax highlighting, error detection, the works.
+
+### VS Code
+
+```bash
+# Build the language server
+cd editors/duck-lsp && cargo build --release
+
+# Copy it somewhere useful
+cp target/release/duck-lsp ~/.local/bin/
+
+# Install the extension
+cp -r editors/vscode ~/.vscode/extensions/duck-lang
+```
+
+Restart VS Code. Open a `.duck` file. The goose is watching.
+
+### Neovim / LazyVim
+
+```bash
+# Build the language server (same as above)
+cd editors/duck-lsp && cargo build --release
+cp target/release/duck-lsp ~/.local/bin/
+```
+
+Add to your LazyVim plugins (`~/.config/nvim/lua/plugins/duck.lua`):
+
+```lua
+return {
+  {
+    dir = "/path/to/duck-lang/editors/nvim",
+    ft = "duck",
+    config = function()
+      require("duck").setup({
+        lsp = {
+          enabled = true,
+          cmd = { vim.fn.expand("~/.local/bin/duck-lsp") },
+        },
+      })
+    end,
+  },
+}
+```
+
+Or clone the repo and point `dir` at `editors/nvim`.
+
+### What You Get
+
+- Syntax highlighting (quack in bold, as it should be)
+- Error squiggles for missing quacks, wrong syntax
+- Hover docs for keywords and builtins
+- Completions for everything
+
 ---
 
 *Honk.*
