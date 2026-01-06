@@ -60,6 +60,8 @@ enum Commands {
     },
     /// List installed libraries
     Libs,
+    /// Get wisdom from the goose
+    Wisdom,
 }
 
 fn main() {
@@ -71,6 +73,7 @@ fn main() {
         Commands::Versions => list_versions(),
         Commands::Install { library, version } => install_library(&library, &version),
         Commands::Libs => list_libraries(),
+        Commands::Wisdom => print_wisdom(),
         _ => {
             // Print startup message for run/check/repl commands
             println!("{}", goose::startup());
@@ -814,5 +817,36 @@ fn list_libraries() {
         println!("    goose install user/repo version");
     }
 
+    println!();
+}
+
+fn print_wisdom() {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    // Embed wisdom at compile time
+    const WISDOM: &str = include_str!("../assets/wisdom.txt");
+
+    // Parse quotes (skip comments and empty lines)
+    let quotes: Vec<&str> = WISDOM
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.trim().is_empty())
+        .collect();
+
+    // Pick a random quote using time-based randomness
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let seed = duration.subsec_nanos() as usize;
+    let idx = seed % quotes.len();
+    let quote = quotes[idx];
+
+    // Print with goose flair
+    let emojis = ["🪿", "🦆", "🦢", ">o)", "~(o>"];
+    let emoji = emojis[seed % emojis.len()];
+
+    println!();
+    println!("  {} \x1b[3m\"{}\"\x1b[0m", emoji, quote);
+    println!();
+    println!("    \x1b[2m— The Goose\x1b[0m");
     println!();
 }

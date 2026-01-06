@@ -1,0 +1,300 @@
+# Goose Wisdom
+# One quote per line. The goose has seen things.
+
+# Programming Philosophy
+The code works. Don't ask why. Don't touch it. Walk away.
+A programmer's job is to turn coffee into bugs, then pretend the bugs are features.
+There are only two hard problems in computer science: cache invalidation, naming things, and off-by-one errors.
+Code never lies. Comments sometimes do. The goose always knows.
+If debugging is removing bugs, then programming must be adding them.
+The best code is no code. The second best code is someone else's code.
+It works on my machine. Ship my machine.
+Weeks of coding can save you hours of planning.
+First, solve the problem. Then, write the code. Or just write the code and hope for the best.
+The only way to go fast is to go well. Or copy from Stack Overflow. Either works.
+
+# Debugging Wisdom
+console.log is not a debugging strategy. It's a lifestyle.
+The bug is always in the last place you look. Because you stop looking after you find it.
+If it's stupid but it works, it's still stupid. You just got lucky.
+Debugging is like being the detective in a crime movie where you're also the murderer.
+There's no place like 127.0.0.1, especially when production is on fire.
+The bug isn't in your code. It's in your understanding of reality.
+Print statements: the duct tape of debugging.
+Sometimes the bug is in the code. Sometimes the bug is in the requirements. Sometimes the bug is you.
+Never trust a test you haven't seen fail. Never trust code you haven't seen crash.
+The fastest debugging technique is blaming the previous developer. Even if it was you.
+
+# Time & Deadlines
+Given enough time, any project will expand to consume all available time, plus two weeks.
+Estimating software is easy. Being right is the hard part.
+The deadline was yesterday. The code isn't done. The goose is not surprised.
+"It'll be done by Friday" is the most dangerous phrase in software development.
+A project manager is someone who thinks nine women can deliver a baby in one month.
+The last 10% of the project takes 90% of the time. The first 90% also takes 90% of the time.
+Deadlines are just suggestions that everyone takes very seriously until they don't.
+Time flies when you're having fun. Time crawls when you're waiting for CI.
+The sprint ends when the sprint ends, not when the work is done.
+Crunch time: when we pretend that working more hours produces better code.
+
+# On Learning
+The best time to learn a new framework was six months ago. The second best time is never.
+Every expert was once a beginner who didn't give up. Or they just had really good documentation.
+You don't really understand something until you've debugged it at 3 AM.
+Learning to code is easy. Learning to code well takes a lifetime. The goose has seen many lifetimes.
+The more you learn, the more you realize you know nothing. Welcome to programming.
+Read the docs. Read them again. Now read the source code because the docs lied.
+Tutorials make everything look easy. Reality does not.
+Stack Overflow: where hope goes to find disappointment with upvotes.
+The best way to learn is to build something. The best way to suffer is also to build something.
+Google is a skill. Knowing what to Google is an art form.
+
+# Code Quality
+Clean code is not written by following rules. Clean code is written by programmers who care.
+Legacy code is any code without tests. So basically, all code.
+Comments are lies waiting to happen. Code should explain itself. It usually doesn't.
+The code smell isn't coming from the code. It's coming from the decisions.
+Technical debt is like regular debt, except you can't declare bankruptcy.
+Refactoring: when you make things worse before you make them better. Sometimes you stop at worse.
+Perfect is the enemy of done. But so is "good enough" shipped too early.
+Write code as if the person maintaining it is a violent psychopath who knows where you live.
+Every line of code is a liability. Every line of code you don't write is an asset.
+The road to legacy code is paved with "temporary" solutions.
+
+# Software Architecture
+All architecture diagrams are lies. Some are useful.
+Microservices: turning one problem into many smaller problems that talk to each other.
+The cloud is just someone else's computer. With their problems.
+If you can't explain your architecture on a napkin, it's too complicated. Get a bigger napkin.
+Premature optimization is the root of all evil. So is premature abstraction.
+Keep it simple, stupid. But not too simple, genius.
+The best architecture is the one you don't have to think about until it breaks.
+Monolith: a bad word for "it actually works and deploys easily."
+Every system eventually becomes a distributed system. Usually by accident.
+Your architecture is only as good as your worst team member's understanding of it.
+
+# Testing
+Tests are the only documentation that can't lie. They can be wrong, but they can't lie.
+A test that doesn't fail isn't testing anything.
+Integration tests: where unit tests go to realize they were living in a fantasy.
+100% code coverage means nothing if you're testing the wrong things.
+The test suite is green. The production is on fire. Everything is fine.
+Write tests. Then write more tests. Then wonder why you're writing tests for tests.
+End-to-end tests: expensive, slow, flaky, and absolutely necessary.
+If it's not tested, it's broken. If it's tested, it might still be broken.
+Mocking is lying to yourself with extra steps.
+The best test is one that would have caught yesterday's bug.
+
+# Meetings & Communication
+A meeting is an event where minutes are kept and hours are lost.
+Could this meeting have been an email? Yes. Will it be? No.
+The more people in the meeting, the less gets decided.
+Slack: where productivity goes to die in a sea of emoji reactions.
+Documentation is like sex: when it's good, it's very good. When it's bad, it's better than nothing.
+The person who talks the most in meetings knows the least about the code.
+"Let's circle back" is corporate for "I'm ignoring this forever."
+Agile: doing the same thing as before but with more sticky notes.
+Stand-up meetings: where everyone stands so the meeting ends faster. It doesn't work.
+The roadmap is a work of fiction. A compelling one, but fiction nonetheless.
+
+# Production & Deployment
+Deploy on Friday. I dare you.
+Production is the only environment that matters. Everything else is just practice.
+Rollbacks: admitting defeat with style.
+If it's not monitored, it's not running. It's just existing and hoping.
+The best deployment is the one nobody notices.
+Feature flags: because commitment is hard.
+Your staging environment is nothing like production. Stop pretending it is.
+CI/CD: Continuous Improvement / Continuous Disappointment.
+The log file knows all. The log file judges all.
+Zero downtime deployment: the beautiful lie we tell ourselves.
+
+# Version Control
+Git: where code goes to be confused by everyone.
+The commit message "fixed stuff" tells you everything and nothing.
+Merge conflicts: proof that two people can look at the same code and see completely different things.
+Git blame: the only acceptable form of workplace blame.
+A good commit message is worth a thousand code reviews.
+Rebasing is rewriting history. History is written by the developers who merged first.
+The main branch is sacred. Treat it as such. Or don't. You'll learn.
+Force push with caution. Or don't, and learn the hard way.
+Cherry-pick: for when you did the right thing on the wrong branch.
+Git stash: where code goes to be forgotten for three months.
+
+# APIs & Integration
+An API is a promise. Some promises are broken more than others.
+REST is best, until you need real-time. Then everything is a mistake.
+JSON: because XML hurt us and we're still healing.
+The API documentation is outdated. It was outdated when it was written.
+Rate limiting: the server's way of saying "slow down, you animal."
+Webhooks: events delivered to a URL that may or may not exist anymore.
+Breaking changes: surprise features that ruin everyone's weekend.
+The best API is invisible. The worst API is the one you're integrating with right now.
+CORS: Cross-Origin Resource Sharing, or Can't Obtain Resources Sensibly.
+GraphQL: because having one way to do things was apparently too simple.
+
+# Databases
+Normalization is great until you have to write a query.
+NoSQL: for when you don't know your schema. Also for when you do.
+The database is always the bottleneck. Even when it isn't.
+Indexes make reads fast and writes slow. Choose your struggle.
+An ORM is an abstraction. All abstractions leak. The ORM leaks SQL.
+Backup your data. Then test your backups. Then test them again.
+Schema migrations: the reason we can't have nice things.
+The query optimizer knows better than you. Except when it doesn't.
+Redis: because sometimes you need to go fast and lose data.
+The best database is the one that doesn't wake you up at 3 AM.
+
+# Security
+Security is a process, not a product. A painful, never-ending process.
+The user will always find a way to break your validation. Always.
+Passwords should be hashed, salted, and prayed over.
+Never trust user input. Never trust any input. Trust nothing.
+SQL injection is still a thing in 2024. Sleep tight.
+HTTPS is not optional. It never was.
+The biggest security vulnerability is always between the keyboard and the chair.
+Two-factor authentication: mildly inconvenient for you, highly inconvenient for hackers.
+Security through obscurity is not security. It's hope with extra steps.
+Your password policy makes users choose "Password1!" and stick it on a Post-it.
+
+# Career & Life
+Your job is not your identity. But your code is your legacy. Make it readable.
+Imposter syndrome never goes away. You just get better at ignoring it.
+The senior developer's job is to make mistakes with more confidence.
+Take breaks. Your brain needs rest. The code will still be broken when you return.
+No one knows what they're doing. Some are just better at pretending.
+The best career advice is to write code that solves problems. Real problems.
+Your GitHub profile is not your resume. Unless it is. Then good luck.
+Programming is not about being smart. It's about being stubborn enough to keep going.
+The only constant in tech is change. And JavaScript frameworks.
+Work-life balance: the mythical creature of the software industry.
+
+# Duck & Goose Themed
+Not all who waddle are lost. Some are just processing.
+A duck in the code is worth two in the documentation.
+Quack first, think later. Actually, maybe think first.
+The early bird gets the worm. The early developer gets the merge conflicts.
+If it walks like a duck and quacks like a duck, it might still throw a NullPointerException.
+Don't put all your eggs in one git repository. Unless you have good backups.
+The goose sees all. The goose judges all. The goose says nothing.
+Water off a duck's back. Bugs off a goose's code. That's the dream.
+A wise goose once said nothing. Because code should speak for itself.
+In the pond of programming, the goose swims alone. With imposter syndrome.
+Honk if you've ever pushed to main by accident.
+The duck debugs in silence. The goose debugs with print statements.
+Bread is temporary. Code is permanent. Choose wisely.
+Some days you're the duck. Some days you're the pond. Today you're the bug.
+The goose doesn't make mistakes. The goose makes learning opportunities.
+Migration is painful whether you're a bird or a database.
+A pond without ducks is just a wet hole. Code without tests is just hopeful text.
+The goose remembers every commit. The goose forgives nothing.
+Fly south for the winter. Push to main before the freeze.
+Even a blind duck finds bread sometimes. Even a blind coder ships features.
+
+# Existential
+Your code will outlive you. Make sure it's not embarrassing.
+In 100 years, none of this will matter. Ship it anyway.
+We're all just moving bits around until we die.
+Code is poetry that machines can read and humans pretend to understand.
+Every program is a castle built on sand. The tide is coming.
+You are not your code. But your code reviews might define your relationships.
+The void stares back. The void is also null.
+Nothing is certain except death, taxes, and undefined behavior.
+We came from nothing, we return to nothing, we push to nothing (--force).
+In the grand scheme of things, we're all just managing memory.
+
+# Hot Takes
+Vim is a lifestyle. Emacs is a religion. VSCode is a compromise.
+Tabs vs spaces is a proxy war for something deeper.
+JavaScript is not a real language. It's three languages in a trenchcoat.
+PHP isn't dead. It's just resting. Very quietly.
+Rust is memory safety wrapped in a learning curve.
+Python: where whitespace is destiny.
+CSS is not programming. But neither is most of what we do.
+The best programming language is the one that pays your bills.
+Functional programming is just functions all the way down. And up. And sideways.
+Object-oriented programming was a mistake. But it's our mistake, and we love it.
+
+# Random Profundity
+The bug you find today was planted by the you of yesterday.
+Every great program started as a terrible program that didn't give up.
+Simplicity is the ultimate sophistication. Complexity is the ultimate job security.
+The difference between a junior and a senior is the senior has seen more things break.
+All code is technical debt. Some debt is just more obvious.
+The computer does exactly what you tell it to. That's the problem.
+There is no cloud, only someone else's technical debt.
+The plural of "anecdote" is not "data." But it is "conference talk."
+You can't fix stupid. But you can try to validate against it.
+Hope is not a strategy. But sometimes it's all we have.
+
+# More Practical
+Delete code. It's okay. It's in git. Probably.
+The best refactor is the one you don't have to do.
+If you're not breaking things, you're not moving fast enough. Or you're being careful. Both are valid.
+Documentation is a love letter to your future self. Write it with care.
+Premature optimization is the root of all evil. But so is premature pessimism.
+The fastest code is code that never runs. Comment it out if needed.
+Measure twice, deploy once. Or deploy twice and measure in production.
+Good code is obvious. Great code is invisible.
+Every abstraction has a cost. Pay it wisely.
+The database will eventually betray you. Have a plan.
+
+# Team Dynamics
+A team is only as strong as its weakest git hygiene.
+Code review is a gift. A frustrating, time-consuming gift.
+The best pull request is a small pull request.
+Pair programming: two people, one keyboard, infinite opinions.
+The lone wolf developer is a myth. We all Google things.
+Knowledge silos are where projects go to stagnate.
+The person who says "it's simple" hasn't built it yet.
+Blame the process, not the person. Unless the person ignored the process.
+The best teams disagree often and commit fully.
+Communication is the hardest part of software. The code is easy.
+
+# Philosophy of Simplicity
+Do one thing and do it well. Then scope creep will handle the rest.
+The best feature is one that solves a real problem. The worst is one you thought was cool.
+If you can't explain it simply, you don't understand it well enough. Or it's enterprise software.
+Complexity is the enemy of reliability. Also of sleep.
+Make it work. Make it right. Make it fast. Usually we stop at "make it work."
+Less is more. More is more. Choose your adventure.
+The simplest solution is usually the best. Unless it's too simple. Then it's naive.
+YAGNI: You Ain't Gonna Need It. But you'll add it anyway.
+Build what you need, not what you might need.
+Scope creep is a feature, not a bug. Unfortunately.
+
+# On Failure
+Failure is feedback. Expensive, embarrassing feedback.
+The only true failure is not learning from failure. Or not having backups.
+Every outage is a learning opportunity. An expensive, resume-updating learning opportunity.
+Post-mortems: where we promise to never make the same mistake twice. We will.
+Incident response: organized panic with better documentation.
+The retrospective reveals all. The retrospective changes nothing.
+Blame the system, fix the system. Then blame the system again.
+Every bug is a feature in disguise. A terrible disguise.
+Ship broken code and learn fast. But also, maybe don't?
+The first draft is always garbage. Ship it anyway.
+
+# Meta Programming
+Code that writes code is either genius or insanity. Often both.
+Metaprogramming: because regular programming wasn't confusing enough.
+Reflection: when code looks at itself and doesn't like what it sees.
+The only thing worse than magic in code is undocumented magic.
+A DSL is a language within a language. Inception, but less cool.
+Macros: write-once, debug-forever.
+The abstraction you create will become the abstraction you fight.
+Clever code is code you can't debug.
+Templates are just functions with more steps.
+If you can't read your own code after a week, imagine what others feel.
+
+# Final Wisdom
+Ship it. Learn. Repeat.
+The best code you write is the code you delete.
+Every expert was once a disaster. Keep going.
+Code is never finished, only abandoned.
+The goose has spoken. Now go write some quacking good code.
+Today's hack is tomorrow's legacy system.
+You are not alone. We're all just pretending to know what we're doing.
+The journey of a thousand bugs begins with a single commit.
+Keep calm and blame DNS.
+May your builds be green and your deploys be boring.
