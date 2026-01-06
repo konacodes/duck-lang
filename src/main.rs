@@ -62,6 +62,19 @@ enum Commands {
     Libs,
     /// Get wisdom from the goose
     Wisdom,
+    /// Watch a file and re-run on changes
+    Watch {
+        /// The .duck file to watch
+        file: String,
+        /// Arguments to pass to the Duck program
+        #[arg(trailing_var_arg = true)]
+        args: Vec<String>,
+    },
+    /// Create a new Duck project
+    New {
+        /// Project name
+        name: String,
+    },
 }
 
 fn main() {
@@ -74,6 +87,8 @@ fn main() {
         Commands::Install { library, version } => install_library(&library, &version),
         Commands::Libs => list_libraries(),
         Commands::Wisdom => print_wisdom(),
+        Commands::Watch { file, args } => watch_file(&file, args),
+        Commands::New { name } => new_project(&name),
         _ => {
             // Print startup message for run/check/repl commands
             println!("{}", goose::startup());
@@ -848,5 +863,263 @@ fn print_wisdom() {
     println!("  {} \x1b[3m\"{}\"\x1b[0m", emoji, quote);
     println!();
     println!("    \x1b[2m— The Goose\x1b[0m");
+    println!();
+}
+
+fn watch_file(path: &str, args: Vec<String>) {
+    use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher, Event, EventKind};
+    use std::sync::mpsc::channel;
+    use std::time::{Duration, Instant};
+    use std::path::Path;
+
+    let path = Path::new(path);
+    if !path.exists() {
+        println!("\x1b[31m✗\x1b[0m File not found: {}", path.display());
+        return;
+    }
+
+    let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+    let parent = path.parent().unwrap_or(Path::new("."));
+    let canonical_path = path.canonicalize().unwrap_or(path.to_path_buf());
+
+    // Clear screen and print header
+    fn print_header(file_name: &str, run_count: usize) {
+        print!("\x1b[2J\x1b[H"); // Clear screen and move cursor to top
+        println!();
+        println!("  \x1b[36m┌─────────────────────────────────────────┐\x1b[0m");
+        println!("  \x1b[36m│\x1b[0m  🪿 \x1b[1mGOOSE WATCH\x1b[0m                         \x1b[36m│\x1b[0m");
+        println!("  \x1b[36m│\x1b[0m  \x1b[2mWatching for changes...\x1b[0m               \x1b[36m│\x1b[0m");
+        println!("  \x1b[36m└─────────────────────────────────────────┘\x1b[0m");
+        println!();
+        println!("  \x1b[33m▶\x1b[0m \x1b[1m{}\x1b[0m \x1b[2m(run #{})\x1b[0m", file_name, run_count);
+        println!("  \x1b[2m{}\x1b[0m", "─".repeat(43));
+        println!();
+    }
+
+    fn print_reload_banner(file_name: &str) {
+        println!();
+        println!("  \x1b[2m{}\x1b[0m", "─".repeat(43));
+        println!("  \x1b[35m⟳\x1b[0m \x1b[1mChange detected!\x1b[0m Reloading \x1b[33m{}\x1b[0m...", file_name);
+        println!();
+        std::thread::sleep(Duration::from_millis(100));
+    }
+
+    fn run_duck_file(path: &Path, args: &[String]) -> bool {
+        let source = match fs::read_to_string(path) {
+            Ok(s) => s,
+            Err(e) => {
+                println!("  \x1b[31m✗ Error reading file:\x1b[0m {}", e);
+                return false;
+            }
+        };
+
+        // Lex
+        let tokens = match crate::lexer::lex(&source) {
+            Ok(t) => t,
+            Err(e) => {
+                println!("  \x1b[31m✗ Lexer error:\x1b[0m {}", e);
+                return false;
+            }
+        };
+
+        // Parse
+        let mut parser = crate::parser::Parser::new(tokens);
+        let blocks = match parser.parse() {
+            Ok(b) => b,
+            Err(errors) => {
+                for e in errors {
+                    println!("  \x1b[31m✗ Parser error:\x1b[0m {}", e);
+                }
+                return false;
+            }
+        };
+
+        // Run
+        let mut interp = crate::interpreter::Interpreter::with_args(args.to_vec());
+
+        match interp.run(blocks) {
+            Ok(_) => true,
+            Err(e) => {
+                println!("  \x1b[31m✗ Runtime error:\x1b[0m {}", e);
+                false
+            }
+        }
+    }
+
+    // Set up file watcher
+    let (tx, rx) = channel();
+    let mut watcher = match RecommendedWatcher::new(
+        move |res: Result<Event, _>| {
+            if let Ok(event) = res {
+                let _ = tx.send(event);
+            }
+        },
+        Config::default(),
+    ) {
+        Ok(w) => w,
+        Err(e) => {
+            println!("\x1b[31m✗\x1b[0m Failed to create watcher: {}", e);
+            return;
+        }
+    };
+
+    if let Err(e) = watcher.watch(parent, RecursiveMode::NonRecursive) {
+        println!("\x1b[31m✗\x1b[0m Failed to watch directory: {}", e);
+        return;
+    }
+
+    let mut run_count = 1;
+    let mut last_run = Instant::now();
+    let debounce = Duration::from_millis(200);
+
+    // Initial run
+    print_header(&file_name, run_count);
+    let start = Instant::now();
+    let success = run_duck_file(path, &args);
+    let elapsed = start.elapsed();
+
+    println!();
+    if success {
+        println!("  \x1b[32m✓\x1b[0m \x1b[2mCompleted in {:.2?}\x1b[0m", elapsed);
+    }
+    println!();
+    println!("  \x1b[2mPress Ctrl+C to stop watching\x1b[0m");
+
+    // Watch loop
+    loop {
+        match rx.recv() {
+            Ok(event) => {
+                // Check if this event is for our file
+                let dominated = event.paths.iter().any(|p| {
+                    p.canonicalize().unwrap_or(p.clone()) == canonical_path
+                });
+
+                if !dominated {
+                    continue;
+                }
+
+                // Only react to modify events
+                if !matches!(event.kind, EventKind::Modify(_)) {
+                    continue;
+                }
+
+                // Debounce rapid events
+                if last_run.elapsed() < debounce {
+                    continue;
+                }
+                last_run = Instant::now();
+
+                run_count += 1;
+                print_reload_banner(&file_name);
+                print_header(&file_name, run_count);
+
+                let start = Instant::now();
+                let success = run_duck_file(path, &args);
+                let elapsed = start.elapsed();
+
+                println!();
+                if success {
+                    println!("  \x1b[32m✓\x1b[0m \x1b[2mCompleted in {:.2?}\x1b[0m", elapsed);
+                }
+                println!();
+                println!("  \x1b[2mPress Ctrl+C to stop watching\x1b[0m");
+            }
+            Err(_) => break,
+        }
+    }
+}
+
+fn new_project(name: &str) {
+    use std::path::Path;
+
+    let project_dir = Path::new(name);
+
+    // Check if directory already exists
+    if project_dir.exists() {
+        println!("\x1b[31m✗\x1b[0m Directory '{}' already exists!", name);
+        return;
+    }
+
+    // Create project structure
+    println!();
+    println!("  🪿 \x1b[1mCreating new Duck project:\x1b[0m {}", name);
+    println!();
+
+    // Create directories
+    if let Err(e) = fs::create_dir_all(project_dir.join("src")) {
+        println!("\x1b[31m✗\x1b[0m Failed to create directory: {}", e);
+        return;
+    }
+    println!("  \x1b[32m✓\x1b[0m Created {}/", name);
+    println!("  \x1b[32m✓\x1b[0m Created {}/src/", name);
+
+    // Create main.duck
+    let main_content = format!(r#"-- {} - A Duck Project
+-- Run with: goose run src/main.duck
+
+quack [print "Hello from {}!"]
+quack [print ""]
+quack [print "Welcome to your new Duck project."]
+quack [print "Start coding and don't forget to quack!"]
+"#, name, name);
+
+    if let Err(e) = fs::write(project_dir.join("src/main.duck"), main_content) {
+        println!("\x1b[31m✗\x1b[0m Failed to create main.duck: {}", e);
+        return;
+    }
+    println!("  \x1b[32m✓\x1b[0m Created {}/src/main.duck", name);
+
+    // Create README.md
+    let readme_content = format!(r#"# {}
+
+A Duck project. The goose approves.
+
+## Run
+
+```bash
+goose run src/main.duck
+```
+
+## Watch (auto-reload on changes)
+
+```bash
+goose watch src/main.duck
+```
+
+## About Duck
+
+Duck is a programming language where every code block must be preceded by `quack` to execute.
+The interpreter is named Goose. They have a complicated relationship.
+
+Learn more: https://github.com/konacodes/duck-lang
+"#, name);
+
+    if let Err(e) = fs::write(project_dir.join("README.md"), readme_content) {
+        println!("\x1b[31m✗\x1b[0m Failed to create README.md: {}", e);
+        return;
+    }
+    println!("  \x1b[32m✓\x1b[0m Created {}/README.md", name);
+
+    // Create .gitignore
+    let gitignore_content = "# Duck project ignores\n*.log\n.DS_Store\n";
+    if let Err(e) = fs::write(project_dir.join(".gitignore"), gitignore_content) {
+        println!("\x1b[31m✗\x1b[0m Failed to create .gitignore: {}", e);
+        return;
+    }
+    println!("  \x1b[32m✓\x1b[0m Created {}/.gitignore", name);
+
+    println!();
+    println!("  \x1b[36m┌─────────────────────────────────────────┐\x1b[0m");
+    println!("  \x1b[36m│\x1b[0m  \x1b[32m✓ Project created successfully!\x1b[0m       \x1b[36m│\x1b[0m");
+    println!("  \x1b[36m└─────────────────────────────────────────┘\x1b[0m");
+    println!();
+    println!("  Next steps:");
+    println!("    \x1b[33mcd {}\x1b[0m", name);
+    println!("    \x1b[33mgoose run src/main.duck\x1b[0m");
+    println!();
+    println!("  Or watch for changes:");
+    println!("    \x1b[33mgoose watch src/main.duck\x1b[0m");
+    println!();
+    println!("  Happy quacking! 🦆");
     println!();
 }
