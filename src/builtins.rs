@@ -70,6 +70,21 @@ pub fn is_builtin(name: &str) -> bool {
             | "ws-receive"
             | "ws-close"
             | "ws-connected"
+            // Terminal colors and styles
+            | "ansi-red"
+            | "ansi-green"
+            | "ansi-yellow"
+            | "ansi-blue"
+            | "ansi-magenta"
+            | "ansi-cyan"
+            | "ansi-white"
+            | "ansi-gray"
+            | "ansi-bold"
+            | "ansi-dim"
+            | "ansi-italic"
+            | "ansi-underline"
+            | "ansi-reset"
+            | "ansi-strip"
     )
 }
 
@@ -127,6 +142,21 @@ pub fn call_builtin(name: &str, args: Vec<Value>) -> Result<Value, String> {
         "ws-receive" => web::builtin_ws_receive(args),
         "ws-close" => web::builtin_ws_close(args),
         "ws-connected" => web::builtin_ws_connected(args),
+        // Terminal colors and styles
+        "ansi-red" => builtin_ansi_color(args, "\x1b[31m"),
+        "ansi-green" => builtin_ansi_color(args, "\x1b[32m"),
+        "ansi-yellow" => builtin_ansi_color(args, "\x1b[33m"),
+        "ansi-blue" => builtin_ansi_color(args, "\x1b[34m"),
+        "ansi-magenta" => builtin_ansi_color(args, "\x1b[35m"),
+        "ansi-cyan" => builtin_ansi_color(args, "\x1b[36m"),
+        "ansi-white" => builtin_ansi_color(args, "\x1b[37m"),
+        "ansi-gray" => builtin_ansi_color(args, "\x1b[90m"),
+        "ansi-bold" => builtin_ansi_color(args, "\x1b[1m"),
+        "ansi-dim" => builtin_ansi_color(args, "\x1b[2m"),
+        "ansi-italic" => builtin_ansi_color(args, "\x1b[3m"),
+        "ansi-underline" => builtin_ansi_color(args, "\x1b[4m"),
+        "ansi-reset" => Ok(Value::String("\x1b[0m".to_string())),
+        "ansi-strip" => builtin_ansi_strip(args),
         _ => Err(format!("Unknown builtin: {}", name)),
     }
 }
@@ -774,6 +804,48 @@ fn builtin_env(args: Vec<Value>) -> Result<Value, String> {
 // Base64: base64-encode, base64-decode
 // WebSocket: ws-connect, ws-send, ws-receive, ws-close (placeholder)
 // =============================================================================
+
+// =============================================================================
+// Terminal Colors and Styles
+// =============================================================================
+
+/// Wrap text in an ANSI color/style code
+fn builtin_ansi_color(args: Vec<Value>, code: &str) -> Result<Value, String> {
+    match args.first() {
+        Some(value) => {
+            let text = format!("{}", value);
+            Ok(Value::String(format!("{}{}\x1b[0m", code, text)))
+        }
+        None => Err("ANSI style functions require 1 argument".to_string()),
+    }
+}
+
+/// Strip ANSI escape codes from a string
+fn builtin_ansi_strip(args: Vec<Value>) -> Result<Value, String> {
+    match args.first() {
+        Some(Value::String(s)) => {
+            // Simple regex-free ANSI stripping
+            let mut result = String::new();
+            let mut chars = s.chars().peekable();
+            while let Some(c) = chars.next() {
+                if c == '\x1b' {
+                    // Skip until 'm' (end of ANSI sequence)
+                    while let Some(&next) = chars.peek() {
+                        chars.next();
+                        if next == 'm' {
+                            break;
+                        }
+                    }
+                } else {
+                    result.push(c);
+                }
+            }
+            Ok(Value::String(result))
+        }
+        Some(other) => Err(format!("ansi-strip() expects a string, got {}", other.type_name())),
+        None => Err("ansi-strip() requires 1 argument".to_string()),
+    }
+}
 
 #[cfg(test)]
 mod tests {
