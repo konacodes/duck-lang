@@ -1,0 +1,18 @@
+[package]
+name = "duck-lsp"
+version = "0.1.0"
+edition = "2021"
+description = "Language Server Protocol implementation for Duck"
+authors = ["Duck & Goose"]
+
+[[bin]]
+name = "duck-lsp"
+path = "src/main.rs"
+
+[dependencies]
+tower-lsp = "0.20"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ropey = "1.6"  # For efficient text rope handling
+dashmap = "5.5"  # Concurrent hashmap for document storage

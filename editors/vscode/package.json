@@ -1,0 +1,76 @@
+{
+  "name": "duck-lang",
+  "displayName": "Duck Language",
+  "description": "Language support for Duck programming language - syntax highlighting, error checking, and more",
+  "version": "0.1.0",
+  "publisher": "konacodes",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/konacodes/duck-lang"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:duck"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "duck",
+        "aliases": [
+          "Duck",
+          "duck"
+        ],
+        "extensions": [
+          ".duck"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/duck-light.png",
+          "dark": "./icons/duck-dark.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "duck",
+        "scopeName": "source.duck",
+        "path": "./syntaxes/duck.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Duck",
+      "properties": {
+        "duck.lsp.path": {
+          "type": "string",
+          "default": "/home/jace/.local/bin/duck-lsp",
+          "description": "Path to the Duck language server executable"
+        },
+        "duck.lsp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Duck language server for diagnostics and completions"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0"
+  }
+}

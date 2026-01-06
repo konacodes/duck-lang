@@ -1,0 +1,113 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Duck",
+  "scopeName": "source.duck",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#quack" },
+    { "include": "#operators" },
+    { "include": "#builtins" },
+    { "include": "#brackets" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.double-dash.duck",
+      "match": "--.*$"
+    },
+    "strings": {
+      "name": "string.quoted.double.duck",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.duck",
+          "match": "\\\\."
+        },
+        {
+          "name": "meta.embedded.interpolation.duck",
+          "begin": "\\{",
+          "end": "\\}",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.interpolation.begin.duck" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.interpolation.end.duck" }
+          },
+          "patterns": [
+            { "include": "#identifiers" },
+            { "include": "#numbers" },
+            { "include": "#operators" }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "name": "constant.numeric.duck",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    },
+    "quack": {
+      "name": "keyword.control.quack.duck",
+      "match": "\\bquack\\b"
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.duck",
+          "match": "\\b(if|then|otherwise|while|do|repeat|times|for|each|in|return|break|continue)\\b"
+        },
+        {
+          "name": "keyword.declaration.duck",
+          "match": "\\b(let|be|becomes|define|taking|as|struct|with)\\b"
+        },
+        {
+          "name": "constant.language.duck",
+          "match": "\\b(true|false|null)\\b"
+        },
+        {
+          "name": "keyword.operator.word.duck",
+          "match": "\\b(and|or|not|at|length|is|push|pop)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.comparison.duck",
+          "match": "(==|!=|<=|>=|<|>)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.duck",
+          "match": "(\\+|-|\\*|/|%)"
+        },
+        {
+          "name": "keyword.operator.arrow.duck",
+          "match": "->"
+        }
+      ]
+    },
+    "builtins": {
+      "name": "support.function.builtin.duck",
+      "match": "\\b(print|input|random|floor|ceil|abs|type-of|len|string|number|sqrt|pow|min|max|range|list)\\b"
+    },
+    "brackets": {
+      "patterns": [
+        {
+          "name": "punctuation.definition.block.duck",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.parenthesis.duck",
+          "match": "[\\(\\)]"
+        }
+      ]
+    },
+    "identifiers": {
+      "name": "variable.other.duck",
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_-]*\\b"
+    }
+  }
+}

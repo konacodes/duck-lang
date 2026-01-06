@@ -343,19 +343,9 @@ goose install pond/http    # Install from registry
 
 Website at `pond.duck-lang.org` with search, docs, download counts.
 
-### WebSocket support
+### ~~WebSocket support~~ ✅ DONE
 
-For real-time applications and proper Discord bots.
-
-```duck
-quack [let ws be websocket-connect("wss://gateway.discord.gg")]
-
-quack [websocket-on-message ws [msg] ->
-  quack [print f"Received: {msg}"]
-]
-
-quack [websocket-send ws "{\"op\": 1}"]
-```
+Implemented in v0.5.0! Built-in `ws-connect`, `ws-send`, `ws-receive`, `ws-close`, `ws-connected`. Also available in `konacodes/quests` library with cleaner wrappers.
 
 ### Built-in SQLite
 
@@ -447,25 +437,9 @@ quack [let response be ai.chat client list(
 quack [print response.content]
 ```
 
-### Library: `konacodes/websocket`
+### ~~Library: `konacodes/websocket`~~ ✅ DONE
 
-WebSocket client for real-time connections.
-
-```duck
-quack [migrate "git+konacodes/websocket" as ws]
-
-quack [let socket be ws.connect("wss://example.com/socket")]
-
-quack [ws.on-message socket [msg] ->
-  quack [print f"Received: {msg}"]
-]
-
-quack [ws.on-close socket [] ->
-  quack [print "Connection closed"]
-]
-
-quack [ws.send socket "Hello!"]
-```
+WebSocket support is now built into `konacodes/quests` v1.1.0 with `ws-open`, `ws-send-message`, `ws-read`, `ws-request`, `ws-disconnect`, and JSON helpers.
 
 ### Library: `konacodes/sqlite`
 
@@ -484,38 +458,9 @@ quack [for each [duck] in ducks do
 ]
 ```
 
-### Library: `konacodes/test`
+### ~~Library: `konacodes/test`~~ ✅ DONE
 
-Unit testing framework that builds on `honk` assertions.
-
-While `honk` is great for inline assertions that crash on failure, a test library lets you run multiple tests, collect results, and get nice output. Uses `honk` under the hood but catches failures gracefully.
-
-```duck
-quack [migrate "git+konacodes/test" as test]
-
-quack [test.describe "Math operations" [] ->
-  quack [test.it "adds numbers correctly" [] ->
-    quack [honk 1 + 1 == 2]          -- Use honk directly
-    quack [honk 5 + 5 == 10]
-  ]
-
-  quack [test.it "handles negative numbers" [] ->
-    quack [honk -1 + 1 == 0]
-  ]
-
-  quack [test.it "works with messages" [] ->
-    quack [honk 2 * 2 == 4 "basic multiplication"]
-  ]
-]
-
-quack [test.run()]
--- Output:
--- Math operations
---   ✓ adds numbers correctly
---   ✓ handles negative numbers
---   ✓ works with messages
--- 3 passing, 0 failing
-```
+Published at `konacodes/test` v0.1.0! Provides `describe`, `test`, and `run` for organizing test suites. Used to test the quests library with 22+ passing tests.
 
 ### Library: `konacodes/html`
 
@@ -638,16 +583,17 @@ quack [migrate "./utils" hiding [internal-fn]]              -- Hide internals
 quack [migrate "git+konacodes/big-lib" lazy]                -- Load on first use
 ```
 
-### Duck Language Server (LSP)
+### ~~Duck Language Server (LSP)~~ ✅ DONE
 
-Full IDE support for VS Code, Neovim, etc.
+Implemented in `editors/` directory! Includes:
 
-- Syntax highlighting
-- Error checking as you type
-- Autocomplete for functions and fields
-- Go to definition
-- Hover for documentation
-- Rename symbol
+- **VS Code Extension** (`editors/vscode/`): Syntax highlighting via TextMate grammar, language configuration
+- **LSP Server** (`editors/duck-lsp/`): Rust-based server with tower-lsp
+  - Diagnostics: missing quacks, `=` instead of `be`/`becomes`, wrong quote/comment styles, array indexing syntax
+  - Hover: keyword and builtin documentation
+  - Completions: all keywords and builtin functions
+
+Build with `cargo build --release` in `editors/duck-lsp/`, then `npm install && npm run compile` in `editors/vscode/`.
 
 ---
 

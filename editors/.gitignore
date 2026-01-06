@@ -1,0 +1,4 @@
+# Build artifacts
+duck-lsp/target/
+vscode/node_modules/
+vscode/out/
