@@ -1,0 +1,296 @@
+-- feathers.duck
+-- Pretty printing library for Duck
+-- Like Python's Rich, but with more quacking
+
+-- =============================================================================
+-- Colors - Wrap text in terminal colors
+-- =============================================================================
+
+quack [define red taking [text] as
+  quack [return ansi-red(text)]
+]
+
+quack [define green taking [text] as
+  quack [return ansi-green(text)]
+]
+
+quack [define yellow taking [text] as
+  quack [return ansi-yellow(text)]
+]
+
+quack [define blue taking [text] as
+  quack [return ansi-blue(text)]
+]
+
+quack [define magenta taking [text] as
+  quack [return ansi-magenta(text)]
+]
+
+quack [define cyan taking [text] as
+  quack [return ansi-cyan(text)]
+]
+
+quack [define white taking [text] as
+  quack [return ansi-white(text)]
+]
+
+quack [define gray taking [text] as
+  quack [return ansi-gray(text)]
+]
+
+quack [define dim taking [text] as
+  quack [return ansi-dim(text)]
+]
+
+-- =============================================================================
+-- Styles - Text formatting
+-- =============================================================================
+
+quack [define bold taking [text] as
+  quack [return ansi-bold(text)]
+]
+
+quack [define italic taking [text] as
+  quack [return ansi-italic(text)]
+]
+
+quack [define underline taking [text] as
+  quack [return ansi-underline(text)]
+]
+
+-- =============================================================================
+-- Semantic Colors - For common use cases
+-- =============================================================================
+
+quack [define success taking [text] as
+  quack [return ansi-green(text)]
+]
+
+quack [define error taking [text] as
+  quack [return ansi-red(text)]
+]
+
+quack [define warning taking [text] as
+  quack [return ansi-yellow(text)]
+]
+
+quack [define info taking [text] as
+  quack [return ansi-cyan(text)]
+]
+
+quack [define muted taking [text] as
+  quack [return ansi-dim(text)]
+]
+
+-- =============================================================================
+-- Fancy Print Functions
+-- =============================================================================
+
+quack [define print-success taking [text] as
+  quack [print ansi-green("✓ " + text)]
+]
+
+quack [define print-error taking [text] as
+  quack [print ansi-red("✗ " + text)]
+]
+
+quack [define print-warning taking [text] as
+  quack [print ansi-yellow("⚠ " + text)]
+]
+
+quack [define print-info taking [text] as
+  quack [print ansi-cyan("ℹ " + text)]
+]
+
+-- =============================================================================
+-- Box Drawing
+-- =============================================================================
+
+quack [define box taking [text] as
+  quack [let width be len(text) + 4]
+  quack [let top be "┌" + repeat-string("─", width - 2) + "┐"]
+  quack [let mid be "│ " + text + " │"]
+  quack [let bot be "└" + repeat-string("─", width - 2) + "┘"]
+  quack [print top]
+  quack [print mid]
+  quack [print bot]
+]
+
+quack [define box-colored taking [text, color] as
+  quack [let width be len(text) + 4]
+  quack [let top be "┌" + repeat-string("─", width - 2) + "┐"]
+  quack [let mid be "│ " + text + " │"]
+  quack [let bot be "└" + repeat-string("─", width - 2) + "┘"]
+  quack [if color == "red" then
+    quack [print ansi-red(top)]
+    quack [print ansi-red(mid)]
+    quack [print ansi-red(bot)]
+  otherwise
+    quack [if color == "green" then
+      quack [print ansi-green(top)]
+      quack [print ansi-green(mid)]
+      quack [print ansi-green(bot)]
+    otherwise
+      quack [if color == "yellow" then
+        quack [print ansi-yellow(top)]
+        quack [print ansi-yellow(mid)]
+        quack [print ansi-yellow(bot)]
+      otherwise
+        quack [if color == "blue" then
+          quack [print ansi-blue(top)]
+          quack [print ansi-blue(mid)]
+          quack [print ansi-blue(bot)]
+        otherwise
+          quack [if color == "cyan" then
+            quack [print ansi-cyan(top)]
+            quack [print ansi-cyan(mid)]
+            quack [print ansi-cyan(bot)]
+          otherwise
+            quack [if color == "magenta" then
+              quack [print ansi-magenta(top)]
+              quack [print ansi-magenta(mid)]
+              quack [print ansi-magenta(bot)]
+            otherwise
+              quack [print top]
+              quack [print mid]
+              quack [print bot]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+]
+
+-- =============================================================================
+-- Horizontal Rules
+-- =============================================================================
+
+quack [define hr taking [] as
+  quack [print repeat-string("─", 40)]
+]
+
+quack [define hr-double taking [] as
+  quack [print repeat-string("═", 40)]
+]
+
+quack [define hr-dotted taking [] as
+  quack [print repeat-string("·", 40)]
+]
+
+-- =============================================================================
+-- Headers
+-- =============================================================================
+
+quack [define header taking [text] as
+  quack [print ""]
+  quack [print ansi-bold(text)]
+  quack [print repeat-string("─", len(text))]
+]
+
+quack [define section taking [text] as
+  quack [print ""]
+  quack [print ansi-bold(ansi-cyan("▸ " + text))]
+]
+
+-- =============================================================================
+-- Progress Indicators
+-- =============================================================================
+
+quack [define spinner-frames taking [] as
+  quack [return list("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")]
+]
+
+quack [define progress-bar taking [current, total, width] as
+  quack [let pct be current / total]
+  quack [let filled be floor(pct * width)]
+  quack [let empty be width - filled]
+  quack [let bar be repeat-string("█", filled) + repeat-string("░", empty)]
+  quack [let pct-str be string(floor(pct * 100))]
+  quack [return "[" + bar + "] " + pct-str + "%"]
+]
+
+-- =============================================================================
+-- Tables (Simple)
+-- =============================================================================
+
+quack [define table-row taking [cols] as
+  quack [let result be "│"]
+  quack [for each [col] in cols do
+    quack [result becomes result + " " + col + " │"]
+  ]
+  quack [print result]
+]
+
+quack [define table-sep taking [count] as
+  quack [let result be "├"]
+  quack [let i be 0]
+  quack [while i < count do
+    quack [result becomes result + "───────┼"]
+    quack [i becomes i + 1]
+  ]
+  -- Remove last ┼ and add ┤
+  quack [print result]
+]
+
+-- =============================================================================
+-- Utility Functions
+-- =============================================================================
+
+quack [define repeat-string taking [s, n] as
+  quack [let result be ""]
+  quack [let i be 0]
+  quack [while i < n do
+    quack [result becomes result + s]
+    quack [i becomes i + 1]
+  ]
+  quack [return result]
+]
+
+quack [define pad-right taking [text, width] as
+  quack [let padding be width - len(text)]
+  quack [if padding > 0 then
+    quack [return text + repeat-string(" ", padding)]
+  otherwise
+    quack [return text]
+  ]
+]
+
+quack [define pad-left taking [text, width] as
+  quack [let padding be width - len(text)]
+  quack [if padding > 0 then
+    quack [return repeat-string(" ", padding) + text]
+  otherwise
+    quack [return text]
+  ]
+]
+
+quack [define center taking [text, width] as
+  quack [let padding be width - len(text)]
+  quack [if padding > 0 then
+    quack [let left-pad be floor(padding / 2)]
+    quack [let right-pad be padding - left-pad]
+    quack [return repeat-string(" ", left-pad) + text + repeat-string(" ", right-pad)]
+  otherwise
+    quack [return text]
+  ]
+]
+
+-- =============================================================================
+-- Rainbow (just for fun)
+-- =============================================================================
+
+quack [define rainbow taking [text] as
+  quack [let colors be list("31", "33", "32", "36", "34", "35")]
+  quack [let result be ""]
+  quack [let i be 0]
+  quack [let color-idx be 0]
+  quack [while i < len(text) do
+    quack [let char be text at i]
+    quack [let code be colors at color-idx]
+    quack [result becomes result + "\x1b[" + code + "m" + char]
+    quack [color-idx becomes (color-idx + 1) % len(colors)]
+    quack [i becomes i + 1]
+  ]
+  quack [return result + "\x1b[0m"]
+]
